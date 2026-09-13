@@ -1,4 +1,33 @@
-# React + TypeScript + Vite
+# NTD Trading Dashboard
+
+React/Vite trading workspace with an Express API, replay market data, account workflows, and SQLite-backed demo data.
+
+## Local development
+
+```bash
+npm ci
+npm run dev:api
+npm run dev:web
+```
+
+The Vite application runs on port `5173` and proxies `/api` to port `5181`.
+
+## Cloud Run demo
+
+The container serves both the built frontend and API on Cloud Run's `PORT`. Set `NTD_MASTER_KEY` to a 64-character hexadecimal secret and use `/tmp/ntd.db` for the demo database.
+
+> The Cloud Run deployment is a demo environment. Its SQLite database is ephemeral, so accounts, sessions, orders, and settings reset when the container instance is replaced. Use Cloud SQL before treating the service as production.
+
+```bash
+gcloud run deploy ntd-app \
+  --source . \
+  --region asia-south1 \
+  --allow-unauthenticated \
+  --set-env-vars NTD_DB_PATH=/tmp/ntd.db \
+  --set-secrets NTD_MASTER_KEY=ntd-master-key:latest
+```
+
+## React and Vite notes
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

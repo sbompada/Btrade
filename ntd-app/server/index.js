@@ -1,5 +1,7 @@
 import express from 'express';
 import { randomUUID } from 'node:crypto';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   db,
   DB_PATH,
@@ -58,7 +60,8 @@ import {
   requiredSecretsMissing,
 } from './providers.js';
 
-const PORT = Number(process.env.NTD_API_PORT ?? 5181);
+const PORT = Number(process.env.PORT ?? process.env.NTD_API_PORT ?? 5181);
+const HOST = process.env.HOST ?? '0.0.0.0';
 const IS_PROD = process.env.NODE_ENV === 'production';
 /** Dev helpers expose reset tokens and live TOTP codes so the flow is testable without email or an authenticator app. */
 const DEV_HELPERS = !IS_PROD && process.env.NTD_DEV_HELPERS !== 'off';
@@ -1026,6 +1029,15 @@ if (DEV_HELPERS) {
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, db: DB_PATH }));
 
+if (IS_PROD) {
+  const distPath = resolve(dirname(fileURLToPath(import.meta.url)), '../dist');
+  app.use(express.static(distPath));
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api/')) return next();
+    res.sendFile(resolve(distPath, 'index.html'));
+  });
+}
+
 /* ---------------- start ---------------- */
 
 const created = seed();
@@ -1036,15 +1048,17 @@ const holdingRows = seedHoldings();
 const mutualFundRows = seedMutualFunds();
 const calendarRows = seedCalendar();
 await hub.start();
-const server = app.listen(PORT, () => {
-  console.log(`NTD auth API on http://localhost:${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`NTD app listening on http://${HOST}:${PORT}`);
   console.log(`database: ${DB_PATH}`);
-  if (created.length) {
+  if (created.length && DEV_HELPERS) {
     console.log('\nseeded demo accounts (password shown once, stored only as a scrypt hash):');
     for (const account of created) {
       console.log(`  ${account.clientId}  ${account.password}   TOTP secret ${account.secret}`);
     }
     console.log('');
+  } else if (created.length) {
+    console.log(`seeded ${created.length} demo accounts`);
   }
   if (fundRows) console.log('seeded ' + fundRows + ' fund rows');
   if (fundTransactionRows) console.log('seeded ' + fundTransactionRows + ' fund transaction rows');
