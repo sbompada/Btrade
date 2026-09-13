@@ -1,0 +1,64 @@
+{
+  "artboards": [
+    { "file": "LoginUserId.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Login — first time" },
+    { "file": "LoginTotp.dc.html", "x": 1600, "y": 0, "w": 1440, "h": 900, "title": "Login — 2FA" },
+    { "file": "Login.dc.html", "x": 3200, "y": 0, "w": 1440, "h": 900, "title": "Login — returning user" },
+    { "file": "Main.dc.html", "x": 0, "y": 1160, "w": 1440, "h": 920, "title": "Dashboard — main page" },
+    { "file": "Orders.dc.html", "x": 1600, "y": 1160, "w": 1440, "h": 900, "title": "Orders" },
+    { "file": "Positions.dc.html", "x": 3200, "y": 1160, "w": 1440, "h": 760, "title": "Positions" },
+    { "file": "Funds.dc.html", "x": 0, "y": 2320, "w": 1440, "h": 760, "title": "Funds1" },
+    { "file": "AccountMenu.dc.html", "x": 1600, "y": 2320, "w": 380, "h": 480, "title": "Account menu" }
+  ],
+  "annotations": [
+    {
+      "id": "note-flow",
+      "x": 0,
+      "y": -250,
+      "w": 660,
+      "text": "LOGIN FLOW\n\nFirst time: client ID + password → 2FA code → dashboard.\nReturning on a trusted device: password only → dashboard.\n\nAll three share one card (344px, #111316 on near-black), one amber primary, and the same app-links / brand / regulatory footer, so the states only differ where they must."
+    },
+    {
+      "id": "note-legal",
+      "x": 3200,
+      "y": -250,
+      "w": 620,
+      "text": "The regulatory footer is visible placeholders — [SEBI REG NO], [CIN], [REGISTERED ADDRESS], compliance officer — on all three states. Fill these with real values before this goes anywhere public; they are legally required on an Indian broking site."
+    },
+    {
+      "id": "note-main",
+      "x": 0,
+      "y": 1010,
+      "w": 620,
+      "text": "DASHBOARD — main page (signed off).\n\nPositions P&L and the day's P&L tile were corrected so they reconcile with the Positions screen: every figure follows from qty × (LTP − avg), and the bars are scaled to the largest position."
+    },
+    {
+      "id": "note-orders",
+      "x": 1600,
+      "y": 1010,
+      "w": 660,
+      "text": "ORDERS — same top bar and watchlist as the dashboard, with Orders active and second-level tabs Orders / GTT / Baskets / SIP / Alerts.\n\nBUY and SELL stay solid (the signal you scan for); COMPLETE is a quiet tinted chip, since it reads the same on every row. No open orders in this snapshot — pending / rejected / cancelled states are not designed yet."
+    },
+    {
+      "id": "note-positions",
+      "x": 3200,
+      "y": 1010,
+      "w": 660,
+      "text": "POSITIONS — the same four positions the dashboard previews, shown open rather than squared off, so the two screens agree line for line.\n\nBreakdown is P&L contribution: bars scaled to the largest position by absolute P&L, green for gains and red for losses, sorted by magnitude."
+    },
+    {
+      "id": "note-funds",
+      "x": 0,
+      "y": 2170,
+      "w": 660,
+      "text": "FUNDS1 — equity and commodity ledgers side by side. Three headline figures per segment, then the margin components beneath.\n\nThe numbers reconcile with the dashboard's funds tiles: available + used = opening balance, and SPAN + exposure = used margin, in both segments.\n\nOPEN DECISION: a later reference shows the watchlist sidebar with named groups, rows carrying change-in-points + change % + direction arrow + LTP, and a fuller hover row (B / S / depth / chart / delete / more). Not applied yet — it is shared chrome, so it would change every screen at once."
+    },
+    {
+      "id": "note-account-menu",
+      "x": 1600,
+      "y": 2170,
+      "w": 620,
+      "text": "ACCOUNT MENU — the dropdown that was open in your reference, drawn on its own so it does not sit on top of the funds figures. Anchors under the account chip in the top bar.\n\nEmail is an example.com placeholder, not a real address."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

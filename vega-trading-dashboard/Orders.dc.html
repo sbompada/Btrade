@@ -1,0 +1,422 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; font-family: 'IBM Plex Sans', 'Segoe UI', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #f5b32e; text-decoration: none; }
+    a:hover { color: #ffc958; }
+    .n { font-family: 'IBM Plex Mono', ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  </style>
+</helmet>
+
+<div style="width: 1440px; min-height: 900px; display: flex; flex-direction: column; background: #0a0b0d; color: #e7e9eb;">
+
+  <div style="display: flex; align-items: center; gap: 24px; height: 52px; padding: 0 16px; border-bottom: 1px solid #1d2025; background: #0d0f11;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="#f5b32e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4 L10 17 L17.5 4"></path><path d="M6.6 4 L10 10 L13.4 4"></path></svg>
+      <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.2em;">NTD</span>
+    </div>
+
+    <div style="flex: 1; min-width: 0; overflow: hidden; display: flex; align-items: center; gap: 18px;">
+      <div style="display: flex; align-items: baseline; gap: 6px; white-space: nowrap;">
+        <span style="font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #6b7178;">NIFTY 50</span>
+        <span class="n" style="font-size: 12px; color: #e7e9eb;">24,234.55</span>
+        <span class="n" style="font-size: 10px; color: #ff5c52;">−0.49%</span>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 6px; white-space: nowrap;">
+        <span style="font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #6b7178;">SENSEX</span>
+        <span class="n" style="font-size: 12px; color: #e7e9eb;">79,656.09</span>
+        <span class="n" style="font-size: 10px; color: #ff5c52;">−0.75%</span>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 6px; white-space: nowrap;">
+        <span style="font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #6b7178;">BANK NIFTY</span>
+        <span class="n" style="font-size: 12px; color: #e7e9eb;">51,884.30</span>
+        <span class="n" style="font-size: 10px; color: #21c07a;">+0.41%</span>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 6px; white-space: nowrap;">
+        <span style="font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #6b7178;">INDIA VIX</span>
+        <span class="n" style="font-size: 12px; color: #e7e9eb;">13.42</span>
+        <span class="n" style="font-size: 10px; color: #21c07a;">+4.18%</span>
+      </div>
+    </div>
+
+    <div style="flex: none; display: flex; align-items: center; gap: 18px;">
+      <a href="#" style="font-size: 12px; color: #9aa1a8;">Dashboard</a>
+      <a href="#" style="font-size: 12px; font-weight: 500; color: #f5b32e;">Orders</a>
+      <a href="#" style="font-size: 12px; color: #9aa1a8;">Holdings</a>
+      <a href="#" style="font-size: 12px; color: #9aa1a8;">Positions</a>
+      <a href="#" style="font-size: 12px; color: #9aa1a8;">Bids</a>
+      <a href="#" style="font-size: 12px; color: #9aa1a8;">Funds</a>
+      <div style="width: 1px; height: 20px; background: #23272c;"></div>
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#9aa1a8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l1.8 9h8.4L17 7H6"></path><circle cx="8" cy="16" r="1.1"></circle><circle cx="15" cy="16" r="1.1"></circle></svg>
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#9aa1a8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3a4.5 4.5 0 0 0-4.5 4.5c0 4-1.5 5.5-1.5 5.5h12s-1.5-1.5-1.5-5.5A4.5 4.5 0 0 0 10 3z"></path><path d="M8.6 16a1.6 1.6 0 0 0 2.8 0"></path></svg>
+      <div style="display: flex; align-items: center; gap: 7px; padding: 3px 8px 3px 3px; border: 1px solid #23272c; border-radius: 3px;">
+        <div style="width: 20px; height: 20px; border-radius: 2px; background: #2a2113; display: flex; align-items: center; justify-content: center;">
+          <span class="n" style="font-size: 9px; font-weight: 600; color: #f5b32e;">MP</span>
+        </div>
+        <span class="n" style="font-size: 10px; color: #9aa1a8;">MN7315</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 22px; height: 36px; padding: 0 16px; border-bottom: 1px solid #1d2025;">
+    <div style="display: flex; align-items: center; height: 36px; border-bottom: 2px solid #f5b32e;">
+      <span style="font-size: 12px; font-weight: 500; color: #e7e9eb;">Orders</span>
+    </div>
+    <span style="font-size: 12px; color: #787f86;">GTT</span>
+    <span style="font-size: 12px; color: #787f86;">Baskets</span>
+    <span style="font-size: 12px; color: #787f86;">SIP</span>
+    <span style="font-size: 12px; color: #787f86;">Alerts</span>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <div style="width: 6px; height: 6px; border-radius: 3px; background: #21c07a;"></div>
+        <span style="font-size: 10px; color: #9aa1a8;">NSE &amp; BSE open</span>
+      </div>
+      <span class="n" style="font-size: 10px; color: #5a6067;">15:12:40 IST</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex: 1; align-items: stretch;">
+
+    <aside style="width: 268px; flex: none; border-right: 1px solid #1d2025; background: #0d0f11; display: flex; flex-direction: column;">
+      <div style="padding: 10px 10px 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 9px; background: #121417; border: 1px solid #1e2126; border-radius: 3px;">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#5a6067" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.4 10.4 L14 14"></path></svg>
+          <span style="flex: 1; font-size: 11px; color: #5a6067;">Search eg: infy, nifty fut, gold</span>
+          <span class="n" style="font-size: 9px; color: #4d545b; border: 1px solid #23272c; border-radius: 2px; padding: 1px 4px;">Ctrl K</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 3px; padding: 0 10px 9px;">
+        <span class="n" style="font-size: 10px; color: #787f86; width: 22px; height: 20px; display: flex; align-items: center; justify-content: center; border: 1px solid #1e2126; border-radius: 2px;">1</span>
+        <span class="n" style="font-size: 10px; color: #787f86; width: 22px; height: 20px; display: flex; align-items: center; justify-content: center; border: 1px solid #1e2126; border-radius: 2px;">2</span>
+        <span class="n" style="font-size: 10px; color: #787f86; width: 22px; height: 20px; display: flex; align-items: center; justify-content: center; border: 1px solid #1e2126; border-radius: 2px;">3</span>
+        <span class="n" style="font-size: 10px; color: #f5b32e; width: 22px; height: 20px; display: flex; align-items: center; justify-content: center; border: 1px solid #3a2f12; background: #1c1a12; border-radius: 2px;">4</span>
+        <span class="n" style="font-size: 10px; color: #787f86; width: 22px; height: 20px; display: flex; align-items: center; justify-content: center; border: 1px solid #1e2126; border-radius: 2px;">5</span>
+        <span class="n" style="font-size: 10px; color: #787f86; width: 22px; height: 20px; display: flex; align-items: center; justify-content: center; border: 1px solid #1e2126; border-radius: 2px;">6</span>
+        <span class="n" style="font-size: 10px; color: #787f86; width: 22px; height: 20px; display: flex; align-items: center; justify-content: center; border: 1px solid #1e2126; border-radius: 2px;">7</span>
+        <span style="font-size: 12px; color: #5a6067; width: 22px; height: 20px; display: flex; align-items: center; justify-content: center;">+</span>
+      </div>
+
+      <div style="display: flex; align-items: center; padding: 0 12px; height: 22px; border-top: 1px solid #1a1d21; border-bottom: 1px solid #1a1d21; background: #0f1114;">
+        <span style="flex: 1; font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #5a6067;">INSTRUMENT</span>
+        <span style="width: 74px; text-align: right; font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #5a6067;">LTP</span>
+        <span style="width: 56px; text-align: right; font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #5a6067;">CHG%</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">RELIANCE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #21c07a;">1,412.30</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #21c07a;">+0.84%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">HDFCBANK</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #21c07a;">1,678.45</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #21c07a;">+0.22%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">TCS</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #ff5c52;">3,104.60</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #ff5c52;">−1.12%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">INFY</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #ff5c52;">1,542.25</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #ff5c52;">−0.38%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">ICICIBANK</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #21c07a;">1,246.90</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #21c07a;">+1.04%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">SBIN</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #21c07a;">812.55</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #21c07a;">+0.61%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">TATAMOTORS</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #ff5c52;">692.15</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #ff5c52;">−2.08%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">ITC</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #21c07a;">408.70</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #21c07a;">+0.15%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">AXISBANK</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #21c07a;">1,072.40</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #21c07a;">+0.47%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">LT</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #ff5c52;">3,566.80</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #ff5c52;">−0.72%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">BHARTIARTL</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #21c07a;">1,886.25</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #21c07a;">+1.36%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">ADANIENT</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NSE</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #ff5c52;">2,414.05</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #ff5c52;">−1.94%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a; background: #14171b;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #e7e9eb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY 24250 CE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #21c07a;">118.45</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #21c07a;">+12.60%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">BNF 52000 PE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #ff5c52;">264.80</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #ff5c52;">−6.32%</span>
+        </div>
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #14171a;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; font-weight: 500; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">GOLDM 05SEP</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">MCX</span></div>
+          <span class="n" style="width: 74px; text-align: right; font-size: 11px; color: #21c07a;">71,284</span>
+          <span class="n" style="width: 56px; text-align: right; font-size: 11px; color: #21c07a;">+0.38%</span>
+        </div>
+      </div>
+
+      <div style="margin-top: auto; display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-top: 1px solid #1a1d21;">
+        <span class="n" style="font-size: 10px; color: #4d545b;">15 / 250</span>
+        <a href="#" style="font-size: 10px;">+ New group</a>
+      </div>
+    </aside>
+
+    <main style="flex: 1; min-width: 0; padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+
+      <div style="background: #111316; border: 1px solid #1d2025; border-radius: 4px; display: flex; flex-direction: column;">
+
+        <div style="display: flex; align-items: center; gap: 12px; padding: 0 12px; height: 42px; border-bottom: 1px solid #1d2025;">
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#9aa1a8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10 L8 5.5 L12.5 10"></path></svg>
+            <span style="font-size: 12px; font-weight: 500; color: #e7e9eb;">Executed</span>
+            <span class="n" style="font-size: 12px; color: #787f86;">(17)</span>
+          </div>
+          <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 9px; background: #0c0e10; border: 1px solid #1e2126; border-radius: 3px;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5a6067" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.4 10.4 L14 14"></path></svg>
+              <span style="font-size: 11px; color: #5a6067; width: 92px;">Search orders</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border: 1px solid #1e2126; border-radius: 3px;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#9aa1a8" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.8h5l3 3v9.4H4z"></path><path d="M9 1.8v3h3"></path></svg>
+              <span style="font-size: 11px; color: #9aa1a8;">Contract note</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border: 1px solid #1e2126; border-radius: 3px;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#9aa1a8" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"></circle><path d="M8 4.6V8l2.3 1.6"></path></svg>
+              <span style="font-size: 11px; color: #9aa1a8;">History</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border: 1px solid #1e2126; border-radius: 3px;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#9aa1a8" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.4v7.2"></path><path d="M5.2 7 L8 9.8 L10.8 7"></path><path d="M3 12.6h10"></path></svg>
+              <span style="font-size: 11px; color: #9aa1a8;">Download</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; padding: 0 12px; height: 28px; border-bottom: 1px solid #1a1d21; background: #0f1114;">
+          <span style="width: 84px; font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #5a6067;">TIME</span>
+          <span style="width: 64px; font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #5a6067;">TYPE</span>
+          <span style="flex: 1; min-width: 0; font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #5a6067;">INSTRUMENT</span>
+          <span style="width: 84px; font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #5a6067;">PRODUCT</span>
+          <span style="width: 120px; text-align: right; font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #5a6067;">QTY</span>
+          <span style="width: 110px; text-align: right; font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #5a6067;">AVG. PRICE</span>
+          <span style="width: 104px; text-align: right; font-size: 9px; font-weight: 600; letter-spacing: 0.09em; color: #5a6067;">STATUS</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column;">
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">11:59:30</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #ff5c52; border-radius: 2px; padding: 2px 6px;">SELL</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24250 CE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">130 / 130</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">13.35</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">11:59:06</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #4c8dff; border-radius: 2px; padding: 2px 6px;">BUY</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24250 CE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">130 / 130</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">14.95</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">11:56:22</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #ff5c52; border-radius: 2px; padding: 2px 6px;">SELL</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24250 CE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">130 / 130</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">13.65</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">11:55:48</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #4c8dff; border-radius: 2px; padding: 2px 6px;">BUY</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24250 CE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">130 / 130</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">13.60</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">11:54:15</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #ff5c52; border-radius: 2px; padding: 2px 6px;">SELL</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24250 CE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">260 / 260</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">8.45</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">11:53:46</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #4c8dff; border-radius: 2px; padding: 2px 6px;">BUY</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24250 CE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">260 / 260</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">8.50</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">10:48:36</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #ff5c52; border-radius: 2px; padding: 2px 6px;">SELL</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24150 PE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">65 / 65</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">39.75</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">10:48:05</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #4c8dff; border-radius: 2px; padding: 2px 6px;">BUY</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24150 PE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">65 / 65</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">37.60</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">10:20:34</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #ff5c52; border-radius: 2px; padding: 2px 6px;">SELL</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24100 PE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">130 / 130</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">16.45</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">10:19:56</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #4c8dff; border-radius: 2px; padding: 2px 6px;">BUY</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24100 PE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">130 / 130</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">15.45</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">09:55:39</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #ff5c52; border-radius: 2px; padding: 2px 6px;">SELL</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24100 PE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">65 / 65</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">16.50</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">09:53:31</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #4c8dff; border-radius: 2px; padding: 2px 6px;">BUY</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24100 PE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">65 / 65</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">17.00</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">09:44:05</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #ff5c52; border-radius: 2px; padding: 2px 6px;">SELL</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24150 PE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">65 / 65</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">26.40</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">09:42:53</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #4c8dff; border-radius: 2px; padding: 2px 6px;">BUY</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24150 PE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">65 / 65</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">24.90</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">09:41:58</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #ff5c52; border-radius: 2px; padding: 2px 6px;">SELL</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24250 CE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">130 / 130</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">13.25</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px; border-bottom: 1px solid #14171a;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">09:38:59</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #4c8dff; border-radius: 2px; padding: 2px 6px;">BUY</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24250 CE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">65 / 65</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">16.60</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 0 12px; height: 34px;">
+            <span class="n" style="width: 84px; font-size: 11px; color: #9aa1a8;">09:35:18</span>
+            <div style="width: 64px;"><span style="font-size: 9px; font-weight: 600; color: #0a0b0d; background: #4c8dff; border-radius: 2px; padding: 2px 6px;">BUY</span></div>
+            <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 11px; color: #cfd3d7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">NIFTY AUG 24250 CE</span><span style="flex: none; font-size: 8px; letter-spacing: 0.06em; color: #4d545b;">NFO</span></div>
+            <span style="width: 84px; font-size: 11px; color: #9aa1a8;">NRML</span>
+            <span class="n" style="width: 120px; text-align: right; font-size: 11px; color: #cfd3d7;">65 / 65</span>
+            <span class="n" style="width: 110px; text-align: right; font-size: 11px; color: #cfd3d7;">22.70</span>
+            <div style="width: 104px; display: flex; justify-content: flex-end;"><span style="font-size: 9px; font-weight: 600; letter-spacing: 0.05em; color: #21c07a; background: #12291e; border-radius: 2px; padding: 2px 7px;">COMPLETE</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: #111316; border: 1px solid #1d2025; border-radius: 4px; display: flex; align-items: center; gap: 7px; padding: 0 12px; height: 42px;">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#9aa1a8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6 L8 10.5 L12.5 6"></path></svg>
+        <span style="font-size: 12px; font-weight: 500; color: #e7e9eb;">Trades</span>
+        <span class="n" style="font-size: 12px; color: #787f86;">(17)</span>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

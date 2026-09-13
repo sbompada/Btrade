@@ -1,0 +1,169 @@
+{
+  "tradingDay": "11-Sep-2026",
+  "source": "bhavcopy:NSE",
+  "importedAt": "2026-09-13 03:50:19",
+  "note": "Previous-day closes imported from an exchange bhavcopy. Not a live feed.",
+  "instruments": [
+    {
+      "symbol": "NIFTY 50",
+      "exchange": "IDX",
+      "prevClose": 23398.1,
+      "tickSize": 0.05,
+      "volatility": 0.00046
+    },
+    {
+      "symbol": "SENSEX",
+      "exchange": "IDX",
+      "prevClose": 80258,
+      "tickSize": 0.05,
+      "volatility": 0.0012
+    },
+    {
+      "symbol": "BANK NIFTY",
+      "exchange": "IDX",
+      "prevClose": 56606.55,
+      "tickSize": 0.05,
+      "volatility": 0.00084
+    },
+    {
+      "symbol": "INDIA VIX",
+      "exchange": "IDX",
+      "prevClose": 12.29,
+      "tickSize": 0.05,
+      "volatility": 0.00628
+    },
+    {
+      "symbol": "RELIANCE",
+      "exchange": "NSE",
+      "prevClose": 1257.5,
+      "tickSize": 0.05,
+      "volatility": 0.00057
+    },
+    {
+      "symbol": "HDFCBANK",
+      "exchange": "NSE",
+      "prevClose": 708.25,
+      "tickSize": 0.05,
+      "volatility": 0.00191
+    },
+    {
+      "symbol": "TCS",
+      "exchange": "NSE",
+      "prevClose": 2200.8,
+      "tickSize": 0.05,
+      "volatility": 0.00107
+    },
+    {
+      "symbol": "INFY",
+      "exchange": "NSE",
+      "prevClose": 1037.7,
+      "tickSize": 0.05,
+      "volatility": 0.00085
+    },
+    {
+      "symbol": "ICICIBANK",
+      "exchange": "NSE",
+      "prevClose": 1379.3,
+      "tickSize": 0.05,
+      "volatility": 0.00078
+    },
+    {
+      "symbol": "SBIN",
+      "exchange": "NSE",
+      "prevClose": 995.7,
+      "tickSize": 0.05,
+      "volatility": 0.00045
+    },
+    {
+      "symbol": "TATAMOTORS",
+      "exchange": "NSE",
+      "prevClose": 706.85,
+      "tickSize": 0.05,
+      "volatility": 0.003
+    },
+    {
+      "symbol": "ITC",
+      "exchange": "NSE",
+      "prevClose": 259.85,
+      "tickSize": 0.05,
+      "volatility": 0.00076
+    },
+    {
+      "symbol": "AXISBANK",
+      "exchange": "NSE",
+      "prevClose": 1246,
+      "tickSize": 0.05,
+      "volatility": 0.00092
+    },
+    {
+      "symbol": "LT",
+      "exchange": "NSE",
+      "prevClose": 3930.7,
+      "tickSize": 0.05,
+      "volatility": 0.00086
+    },
+    {
+      "symbol": "BHARTIARTL",
+      "exchange": "NSE",
+      "prevClose": 1831.1,
+      "tickSize": 0.05,
+      "volatility": 0.00059
+    },
+    {
+      "symbol": "ADANIENT",
+      "exchange": "NSE",
+      "prevClose": 3060,
+      "tickSize": 0.05,
+      "volatility": 0.00108
+    },
+    {
+      "symbol": "NIFTY AUG 24250 CE",
+      "exchange": "NFO",
+      "prevClose": 135.5,
+      "tickSize": 0.05,
+      "volatility": 0.02
+    },
+    {
+      "symbol": "NIFTY AUG 24150 PE",
+      "exchange": "NFO",
+      "prevClose": 103,
+      "tickSize": 0.05,
+      "volatility": 0.02
+    },
+    {
+      "symbol": "NIFTY AUG 24100 PE",
+      "exchange": "NFO",
+      "prevClose": 88,
+      "tickSize": 0.05,
+      "volatility": 0.022
+    },
+    {
+      "symbol": "NIFTY AUG 24350 CE",
+      "exchange": "NFO",
+      "prevClose": 66.35,
+      "tickSize": 0.05,
+      "volatility": 0.024
+    },
+    {
+      "symbol": "NIFTY AUG 24400 CE",
+      "exchange": "NFO",
+      "prevClose": 38.5,
+      "tickSize": 0.05,
+      "volatility": 0.026
+    },
+    {
+      "symbol": "BANKNIFTY AUG 52000 PE",
+      "exchange": "NFO",
+      "prevClose": 394.5,
+      "tickSize": 0.05,
+      "volatility": 0.02
+    },
+    {
+      "symbol": "GOLDM 05SEP",
+      "exchange": "MCX",
+      "prevClose": 71014,
+      "tickSize": 1,
+      "volatility": 0.0012
+    }
+  ]
+}
