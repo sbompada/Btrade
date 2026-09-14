@@ -5,14 +5,14 @@ import { useMarket } from '../market/MarketDataContext';
 import { indices } from '../data/market';
 import { num, signedPct, toneOf } from '../lib/format';
 import * as Icon from './Icons';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, canAccess, firstAllowedPath } from '../lib/api';
 
 const NAV = [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Orders', to: '/orders' },
   { label: 'Holdings', to: '/holdings' },
   { label: 'Positions', to: '/positions' },
-  { label: 'Bids', to: '/bids' },
+  { label: 'IPO', to: '/ipo' },
   { label: 'Funds', to: '/funds' },
 ];
 
@@ -32,6 +32,13 @@ function AccountMenu({ onClose, onDialog }: { onClose: () => void; onDialog: (di
   const { user, signOut } = useAuth();
   const [privacy, setPrivacy] = useState(() => localStorage.getItem('ntd.privacy') === 'on');
   const [dark, setDark] = useState(() => localStorage.getItem('ntd.theme') !== 'light');
+  const adminScreens = [
+    ...(user?.role === 'admin' ? [{ label: 'User access', path: '/admin/access' }] : []),
+    ...(canAccess(user, 'admin.transactions') ? [{ label: 'Transaction review', path: '/admin/transactions' }] : []),
+    ...(canAccess(user, 'admin.market_data') ? [{ label: 'Market data', path: '/admin/market-data' }] : []),
+    ...(canAccess(user, 'admin.payment_integrations') ? [{ label: 'Payment integrations', path: '/admin/payment-integrations' }] : []),
+    ...(canAccess(user, 'admin.notification_providers') ? [{ label: 'Notification providers', path: '/admin/providers' }] : []),
+  ];
 
   const togglePrivacy = () => {
     const next = !privacy;
@@ -70,7 +77,13 @@ function AccountMenu({ onClose, onDialog }: { onClose: () => void; onDialog: (di
         </button>
       </div>
 
-      <div className="menu-section">
+      {adminScreens.length > 0 && <div className="menu-section">
+        {adminScreens.map((screen) => <button key={screen.path} className="menu-item" onClick={() => { navigate(screen.path); onClose(); }}>
+          <Icon.Terminal /> {screen.label}
+        </button>)}
+      </div>}
+
+      {user?.role !== 'team' && <div className="menu-section">
         <button className="menu-item" onClick={togglePrivacy} aria-pressed={privacy}>
           <span style={{ flex: 1 }}>Privacy mode</span>
           <div className={privacy ? 'toggle on' : 'toggle'}>
@@ -85,7 +98,7 @@ function AccountMenu({ onClose, onDialog }: { onClose: () => void; onDialog: (di
             <div />
           </div>
         </button>
-      </div>
+      </div>}
 
       <div className="menu-section">
         <button className="menu-item" onClick={() => { navigate('/reports'); onClose(); }}>
@@ -168,7 +181,7 @@ export default function TopBar() {
     <div className="topbar" style={{ position: 'relative' }}>
       <div className="brand">
         <Icon.Logo />
-        <span className="brand-word">NTD</span>
+        <span className="brand-word">uni-share</span>
       </div>
 
       <div className="ticker">
@@ -190,14 +203,14 @@ export default function TopBar() {
 
       <div className="topbar-right" ref={wrapRef}>
         <nav className="nav">
-          {NAV.map((n) => (
+          {user?.role !== 'team' && NAV.map((n) => (
             <NavLink key={n.to} to={n.to} className={({ isActive }) => (isActive ? 'active' : '')}>
               {n.label}
             </NavLink>
           ))}
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || user?.role === 'team') && (
             <NavLink
-              to="/admin/providers"
+              to={firstAllowedPath(user)}
               className={({ isActive }) => (isActive ? 'active' : '')}
             >
               Admin
@@ -205,12 +218,12 @@ export default function TopBar() {
           )}
         </nav>
         <div className="divider-v" />
-        <button className="iconbtn" aria-label="Basket" onClick={() => navigate('/orders/baskets')}>
+        {user?.role !== 'team' && <button className="iconbtn" aria-label="Basket" onClick={() => navigate('/orders/baskets')}>
           <Icon.Cart />
-        </button>
-        <button className="iconbtn" aria-label="Alerts" onClick={() => navigate('/orders/alerts')}>
+        </button>}
+        {user?.role !== 'team' && <button className="iconbtn" aria-label="Alerts" onClick={() => navigate('/orders/alerts')}>
           <Icon.Bell />
-        </button>
+        </button>}
         <button
           className={menuOpen ? 'acct open' : 'acct'}
           onClick={() => setMenuOpen((v) => !v)}

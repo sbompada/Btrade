@@ -16,10 +16,10 @@ const PAD = 14;
 const labelFor = (bucket: string, interval: '1m' | '1d') =>
   interval === '1m'
     ? bucket.slice(11, 16)
-    : new Date(`${bucket}T00:00:00Z`).toLocaleDateString('en-GB', {
+    : new Date(`${bucket}T00:00:00+05:30`).toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'short',
-        timeZone: 'UTC',
+        timeZone: 'Asia/Kolkata',
       });
 
 export default function MarketOverview({ symbol = 'NIFTY 50' }: { symbol?: string }) {

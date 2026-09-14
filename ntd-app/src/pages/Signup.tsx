@@ -154,7 +154,7 @@ export default function Signup() {
         <div className="auth-card">
           <span style={{ fontSize: 17, fontWeight: 500 }}>You already have an account</span>
           <div className="notice info" style={{ marginTop: 16 }}>
-            This mobile number is already registered with NTD. Sign in, or recover your user ID if
+            This mobile number is already registered with uni-share. Sign in, or recover your user ID if
             you&rsquo;ve forgotten it.
           </div>
           <Link to="/login" className="btn primary block" style={{ marginTop: 16 }}>
@@ -236,7 +236,7 @@ export default function Signup() {
                 : submitPassword
         }
       >
-        <span style={{ fontSize: 17, fontWeight: 500 }}>Open an NTD account</span>
+        <span style={{ fontSize: 17, fontWeight: 500 }}>Open a uni-share account</span>
         <span style={{ marginTop: 6, fontSize: 11, lineHeight: 1.6, color: 'var(--muted)' }}>
           {step === 'mobile' && 'Free to open. You’ll need your PAN and a mobile number.'}
           {step === 'otp' && 'We’ve sent a 6-digit code to your mobile number.'}

@@ -5,6 +5,42 @@ const inr = new Intl.NumberFormat('en-IN', {
 
 const inrWhole = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 
+export const INDIA_TIME_ZONE = 'Asia/Kolkata';
+
+export const timestampDate = (value: string | number | Date) => {
+  if (value instanceof Date || typeof value === 'number') return new Date(value);
+  return new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(value) ? value : `${value.replace(' ', 'T')}Z`);
+};
+
+export const istDateTime = (value: string | number | Date) => `${timestampDate(value).toLocaleString('en-IN', {
+  timeZone: INDIA_TIME_ZONE,
+  dateStyle: 'medium',
+  timeStyle: 'medium',
+})} IST`;
+
+export const istTime = (value: string | number | Date) => `${timestampDate(value).toLocaleTimeString('en-GB', {
+  timeZone: INDIA_TIME_ZONE,
+  hour12: false,
+})} IST`;
+
+export const istDate = (value: string | number | Date = new Date()) => timestampDate(value).toLocaleDateString('en-IN', {
+  timeZone: INDIA_TIME_ZONE,
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
+export const istDateKey = (value: string | number | Date = new Date()) => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: INDIA_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(timestampDate(value));
+  const valueOf = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? '';
+  return `${valueOf('year')}-${valueOf('month')}-${valueOf('day')}`;
+};
+
 /** 253410.75 -> "2,53,410.75" */
 export const num = (value: number) => inr.format(value);
 

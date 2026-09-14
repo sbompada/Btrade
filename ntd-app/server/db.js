@@ -114,6 +114,7 @@ db.exec(`
     lots       INTEGER NOT NULL CHECK (lots > 0),
     quantity   INTEGER NOT NULL CHECK (quantity > 0),
     price      REAL    NOT NULL CHECK (price > 0),
+    is_cutoff  INTEGER NOT NULL DEFAULT 0,
     amount     REAL    NOT NULL CHECK (amount > 0),
     status     TEXT    NOT NULL DEFAULT 'SUBMITTED' CHECK (status IN ('SUBMITTED', 'CANCELLED')),
     created_at TEXT    NOT NULL DEFAULT (datetime('now')),
@@ -173,6 +174,7 @@ db.exec(`
     -- Negative quantity is a short. Margin treatment differs entirely by sign.
     qty         INTEGER NOT NULL,
     avg_price   REAL    NOT NULL,
+    conversion_blocked INTEGER NOT NULL DEFAULT 0,
     opened_at   TEXT    NOT NULL DEFAULT (datetime('now')),
     UNIQUE (user_id, instrument, product)
   );
@@ -191,6 +193,17 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_orders_user_created ON orders(user_id, created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS order_fills (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id   INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    quantity   INTEGER NOT NULL CHECK (quantity > 0),
+    price      REAL    NOT NULL CHECK (price > 0),
+    filled_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_order_fills_user_time ON order_fills(user_id, filled_at DESC, id DESC);
 
   CREATE TABLE IF NOT EXISTS order_tools (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -230,6 +243,10 @@ db.exec(`
     amount      REAL    NOT NULL CHECK (amount >= 0),
     reference   TEXT    NOT NULL,
     description TEXT    NOT NULL,
+    method      TEXT    NOT NULL DEFAULT 'BANK',
+    status      TEXT    NOT NULL DEFAULT 'COMPLETED',
+    fee         REAL    NOT NULL DEFAULT 0,
+    expected_at TEXT,
     created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
     UNIQUE (user_id, reference)
   );
@@ -305,6 +322,29 @@ if (!userColumns.includes('phone_digits')) {
     db.prepare('UPDATE users SET phone_digits = ? WHERE id = ?').run(normalisePhone(row.phone), row.id);
   }
 }
+
+if (!userColumns.includes('permissions_json')) {
+  db.exec("ALTER TABLE users ADD COLUMN permissions_json TEXT NOT NULL DEFAULT '[]'");
+}
+
+if (!userColumns.includes('created_by')) {
+  db.exec('ALTER TABLE users ADD COLUMN created_by INTEGER REFERENCES users(id)');
+}
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_access_audit (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject_user_id INTEGER,
+    action          TEXT    NOT NULL,
+    detail          TEXT,
+    actor_id        INTEGER REFERENCES users(id),
+    actor_client_id TEXT,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_user_access_audit
+    ON user_access_audit(subject_user_id, created_at);
+`);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS notification_providers (
@@ -391,6 +431,153 @@ db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_providers_one_default
   ON notification_providers(channel) WHERE is_default = 1
 `);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS market_uploads (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    filename       TEXT    NOT NULL,
+    file_type      TEXT    NOT NULL CHECK (file_type IN ('csv', 'xlsx')),
+    total_rows     INTEGER NOT NULL,
+    imported_rows  INTEGER NOT NULL,
+    duplicate_rows INTEGER NOT NULL,
+    rejected_rows  INTEGER NOT NULL,
+    uploaded_by    INTEGER NOT NULL REFERENCES users(id),
+    uploaded_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS market_upload_days (
+    upload_id     INTEGER NOT NULL REFERENCES market_uploads(id) ON DELETE CASCADE,
+    trading_date TEXT    NOT NULL,
+    imported_rows INTEGER NOT NULL,
+    deleted_rows  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (upload_id, trading_date)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_market_uploads_created ON market_uploads(uploaded_at DESC, id DESC);
+  CREATE INDEX IF NOT EXISTS idx_market_upload_days_date ON market_upload_days(trading_date);
+
+  CREATE TABLE IF NOT EXISTS github_minute_imports (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    repository            TEXT    NOT NULL,
+    branch                TEXT    NOT NULL,
+    source_path           TEXT    NOT NULL,
+    filename              TEXT    NOT NULL,
+    symbol                TEXT    NOT NULL,
+    total_rows            INTEGER NOT NULL,
+    imported_minute_rows  INTEGER NOT NULL,
+    duplicate_minute_rows INTEGER NOT NULL,
+    imported_daily_rows   INTEGER NOT NULL,
+    rejected_rows         INTEGER NOT NULL,
+    imported_by           INTEGER NOT NULL REFERENCES users(id),
+    imported_at           TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (repository, branch, source_path)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_github_minute_imports_created
+  ON github_minute_imports(imported_at DESC, id DESC);
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS payment_integrations (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind              TEXT    NOT NULL CHECK (kind IN ('bank', 'upi')),
+    name              TEXT    NOT NULL,
+    driver            TEXT    NOT NULL,
+    account_identity  TEXT,
+    settings_json     TEXT    NOT NULL DEFAULT '{}',
+    secret_cipher     TEXT,
+    is_active         INTEGER NOT NULL DEFAULT 1,
+    is_default        INTEGER NOT NULL DEFAULT 0,
+    last_tested_at    TEXT,
+    last_test_ok      INTEGER,
+    last_test_message TEXT,
+    created_by        INTEGER REFERENCES users(id),
+    updated_by        INTEGER REFERENCES users(id),
+    created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at        TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS payment_integration_audit (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    integration_id  INTEGER,
+    kind            TEXT,
+    action          TEXT    NOT NULL,
+    detail          TEXT,
+    actor_id        INTEGER REFERENCES users(id),
+    actor_client_id TEXT,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_payment_integrations_kind
+    ON payment_integrations(kind);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_integrations_one_default
+    ON payment_integrations(kind) WHERE is_default = 1;
+  CREATE INDEX IF NOT EXISTS idx_payment_integration_audit
+    ON payment_integration_audit(integration_id, created_at);
+`);
+
+const candleColumns = db.prepare('PRAGMA table_info(candles)').all().map((column) => column.name);
+if (!candleColumns.includes('upload_id')) {
+  db.exec('ALTER TABLE candles ADD COLUMN upload_id INTEGER');
+}
+db.exec('CREATE INDEX IF NOT EXISTS idx_candles_upload ON candles(upload_id)');
+
+const orderColumns = db.prepare('PRAGMA table_info(orders)').all().map((column) => column.name);
+if (!orderColumns.includes('variety')) {
+  db.exec("ALTER TABLE orders ADD COLUMN variety TEXT NOT NULL DEFAULT 'REGULAR'");
+}
+if (!orderColumns.includes('trigger_price')) {
+  db.exec('ALTER TABLE orders ADD COLUMN trigger_price REAL');
+}
+if (!orderColumns.includes('order_type')) {
+  db.exec("ALTER TABLE orders ADD COLUMN order_type TEXT NOT NULL DEFAULT 'MARKET'");
+}
+if (!orderColumns.includes('limit_price')) {
+  db.exec('ALTER TABLE orders ADD COLUMN limit_price REAL');
+}
+if (!orderColumns.includes('is_amo')) {
+  db.exec('ALTER TABLE orders ADD COLUMN is_amo INTEGER NOT NULL DEFAULT 0');
+}
+if (!orderColumns.includes('iceberg_legs')) {
+  db.exec('ALTER TABLE orders ADD COLUMN iceberg_legs INTEGER');
+}
+if (!orderColumns.includes('filled_qty')) {
+  db.exec('ALTER TABLE orders ADD COLUMN filled_qty INTEGER NOT NULL DEFAULT 0');
+  db.exec("UPDATE orders SET filled_qty = qty WHERE status = 'COMPLETE'");
+}
+if (!orderColumns.includes('validity')) {
+  db.exec("ALTER TABLE orders ADD COLUMN validity TEXT NOT NULL DEFAULT 'DAY'");
+}
+if (!orderColumns.includes('expires_at')) {
+  db.exec('ALTER TABLE orders ADD COLUMN expires_at TEXT');
+}
+if (!orderColumns.includes('modified_at')) {
+  db.exec('ALTER TABLE orders ADD COLUMN modified_at TEXT');
+}
+
+const positionColumns = db.prepare('PRAGMA table_info(open_positions)').all().map((column) => column.name);
+if (!positionColumns.includes('conversion_blocked')) {
+  db.exec('ALTER TABLE open_positions ADD COLUMN conversion_blocked INTEGER NOT NULL DEFAULT 0');
+}
+
+const fundTransactionColumns = db.prepare('PRAGMA table_info(fund_transactions)').all().map((column) => column.name);
+if (!fundTransactionColumns.includes('method')) {
+  db.exec("ALTER TABLE fund_transactions ADD COLUMN method TEXT NOT NULL DEFAULT 'BANK'");
+}
+if (!fundTransactionColumns.includes('status')) {
+  db.exec("ALTER TABLE fund_transactions ADD COLUMN status TEXT NOT NULL DEFAULT 'COMPLETED'");
+}
+if (!fundTransactionColumns.includes('fee')) {
+  db.exec('ALTER TABLE fund_transactions ADD COLUMN fee REAL NOT NULL DEFAULT 0');
+}
+if (!fundTransactionColumns.includes('expected_at')) {
+  db.exec('ALTER TABLE fund_transactions ADD COLUMN expected_at TEXT');
+}
+
+const bidColumns = db.prepare('PRAGMA table_info(ipo_bids)').all().map((column) => column.name);
+if (!bidColumns.includes('is_cutoff')) {
+  db.exec('ALTER TABLE ipo_bids ADD COLUMN is_cutoff INTEGER NOT NULL DEFAULT 0');
+}
 
 if (!userColumns.includes('role')) {
   db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'");
@@ -492,6 +679,15 @@ export const publicUser = (row) => ({
   name: row.name,
   email: row.email,
   role: row.role ?? 'user',
+  permissions: row.role === 'admin'
+    ? ['*']
+    : (() => {
+        try {
+          return JSON.parse(row.permissions_json ?? '[]');
+        } catch {
+          return [];
+        }
+      })(),
   initials: row.name
     .split(/\s+/)
     .slice(0, 2)

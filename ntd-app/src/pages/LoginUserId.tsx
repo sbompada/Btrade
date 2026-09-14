@@ -36,7 +36,7 @@ export default function LoginUserId() {
   return (
     <div className="auth">
       <form className="auth-card" onSubmit={submit}>
-        <span style={{ fontSize: 17, fontWeight: 500 }}>Sign in to NTD</span>
+        <span style={{ fontSize: 17, fontWeight: 500 }}>Sign in to uni-share</span>
         <span style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>
           Use the client ID from your welcome email.
         </span>

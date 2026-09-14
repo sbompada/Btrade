@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { holdingsApi, type HoldingRecord } from '../lib/api';
+import { holdingsApi, type HoldingRecord, type UnsettledHoldingRecord } from '../lib/api';
 import { useMarket } from './MarketDataContext';
 
 export type LiveHolding = HoldingRecord & {
@@ -27,22 +27,32 @@ export function useHoldings() {
   const { token } = useAuth();
   const { quotes, connected, version } = useMarket();
   const [records, setRecords] = useState<HoldingRecord[]>([]);
+  const [unsettled, setUnsettled] = useState<UnsettledHoldingRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!token) {
       setRecords([]);
+      setUnsettled([]);
       setLoading(false);
       return;
     }
     let cancelled = false;
-    holdingsApi
+    const load = () => holdingsApi
       .get(token)
-      .then(({ holdings }) => !cancelled && setRecords(holdings))
+      .then(({ holdings, unsettled: nextUnsettled }) => {
+        if (!cancelled) {
+          setRecords(holdings);
+          setUnsettled(nextUnsettled);
+        }
+      })
       .catch(() => !cancelled && setRecords([]))
       .finally(() => !cancelled && setLoading(false));
+    load();
+    window.addEventListener('ntd:portfolio-change', load);
     return () => {
       cancelled = true;
+      window.removeEventListener('ntd:portfolio-change', load);
     };
   }, [token]);
 
@@ -73,6 +83,7 @@ export function useHoldings() {
 
     return {
       holdings,
+      unsettled,
       loading,
       count: holdings.length,
       invested,
@@ -83,5 +94,5 @@ export function useHoldings() {
       isLive: connected && holdings.some((h) => h.isLive),
     };
     // `version`, not `quotes` — the Map is mutated in place and never changes identity.
-  }, [records, loading, quotes, version, connected]);
+  }, [records, unsettled, loading, quotes, version, connected]);
 }

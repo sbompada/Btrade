@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import * as Icon from '../components/Icons';
-import { num, signed, signedPct, signedRupees, toneOf, whole } from '../lib/format';
+import { istDateKey, istDateTime, istTime, num, signed, signedPct, signedRupees, toneOf, whole } from '../lib/format';
 import { useFunds } from '../market/useFunds';
 import { useHoldings } from '../market/useHoldings';
 import { useMarket } from '../market/MarketDataContext';
@@ -92,7 +92,7 @@ function Screener() {
               <span className="num">{num(quote.ltp)}</span>
               <span className={`num ${toneOf(quote.change)}`}>{signed(quote.change)}</span>
               <span className={`num ${toneOf(quote.changePct)}`}>{signedPct(quote.changePct)}</span>
-              <span className="num tool-muted">{new Date(quote.ts).toLocaleTimeString('en-GB')}</span>
+              <span className="num tool-muted">{istTime(quote.ts)}</span>
             </div>
           ))}
         </div>
@@ -191,7 +191,7 @@ function Reports() {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `ntd-${type}-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.download = `ntd-${type}-${istDateKey()}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -207,7 +207,7 @@ function Reports() {
           <button className="chip" onClick={download} disabled={!report.rows.length}><Icon.Download /> Download CSV</button>
         </div>
       </div>
-      <div className="tool-report-meta"><span>Current account snapshot</span><span className="num">As of {new Date().toLocaleString('en-GB')}</span></div>
+      <div className="tool-report-meta"><span>Current account snapshot</span><span className="num">As of {istDateTime(new Date())}</span></div>
       <div className="table-scroll">
         <table className="report-table">
           <thead><tr>{report.headers.map((header) => <th key={header}>{header}</th>)}</tr></thead>

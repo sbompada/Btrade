@@ -1,4 +1,4 @@
-import { useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import { useCalendar, type CalendarEvent, type Ipo } from '../market/useCalendar';
 
@@ -14,7 +14,7 @@ function IpoRow({ ipo }: { ipo: Ipo }) {
   return (
     <div className="calendar-row">
       <div className="calendar-primary">
-        <span>{ipo.name}</span>
+        <Link to="/ipo">{ipo.name}</Link>
         <span className="wl-exch">{ipo.code} · {ipo.exchange}</span>
       </div>
       <span className={`tag calendar-status ${ipo.status}`}>{ipo.status}</span>
@@ -41,6 +41,7 @@ function EventRow({ event }: { event: CalendarEvent }) {
 }
 
 export default function Calendar() {
+  const navigate = useNavigate();
   const { calendar, loading } = useCalendar();
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = searchParams.get('tab');
@@ -49,7 +50,7 @@ export default function Calendar() {
   const upcoming = (calendar?.ipos.length ?? 0) - open;
 
   return (
-    <AppShell tabs={['Calendar']}>
+    <AppShell tabs={['Calendar', 'Market timings']} activeTab="Calendar" onTabChange={(next) => next === 'Market timings' && navigate('/market-timings')}>
       <div className="calendar-title">
         <div>
           <h1>Market calendar</h1>

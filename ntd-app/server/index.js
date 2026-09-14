@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import { randomUUID } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +18,7 @@ import {
 import {
   currentTotp,
   decryptSecret,
+  generateTotpSecret,
   hashPassword,
   MASTER_KEY_IS_EPHEMERAL,
   randomToken,
@@ -27,14 +29,23 @@ import {
 } from './crypto.js';
 import { hub } from './marketdata/hub.js';
 import { flushAll, history, isRange } from './marketdata/candles.js';
+import { parseMarketUpload } from './marketdata/upload-parser.js';
+import { deleteImportedDay, listMarketImports, storeMarketImport } from './marketdata/uploads.js';
+import {
+  discoverGitHubMinuteFiles,
+  importGitHubMinuteFile,
+  listGitHubMinuteImports,
+} from './marketdata/github-minute-imports.js';
 import { fundStatementsFor, fundsFor, seedFunds, seedFundTransactions, transferFunds } from './funds.js';
-import { positionRowsFor, presentPosition, seedPositions } from './positions.js';
-import { ordersFor, placeMarketOrder } from './orders.js';
-import { createTool, deleteTool, setToolStatus, toolsFor } from './order-tools.js';
-import { holdingRowsFor, presentHolding, seedHoldings } from './holdings.js';
+import { convertPosition, positionRowsFor, presentPosition, seedPositions } from './positions.js';
+import { cancelOrder, exitHolding, exitPositions, modifyOrder, orderFor, ordersFor, placeOrder, processPendingOrders, tradesFor } from './orders.js';
+import { basketMargin, cloneBasket, createTool, deleteTool, executeBasket, processOrderTools, setToolStatus, toolsFor } from './order-tools.js';
+import { holdingRowsFor, presentHolding, seedHoldings, unsettledHoldingsFor } from './holdings.js';
 import { mutualFundsFor, seedMutualFunds } from './mutual-funds.js';
 import { calendarFor, seedCalendar } from './calendar.js';
 import { bidBookFor, cancelBid, placeBid } from './bids.js';
+import { marketTimings } from './market-timings.js';
+import { parseInstrument } from './margin.js';
 import {
   ageOn,
   completeApplication,
@@ -59,6 +70,15 @@ import {
   presentProvider,
   requiredSecretsMissing,
 } from './providers.js';
+import {
+  auditPaymentIntegration,
+  isPaymentKind,
+  listPaymentIntegrations,
+  PAYMENT_CATALOGUE,
+  paymentDriverSpec,
+  presentPaymentIntegration,
+} from './payment-integrations.js';
+import { hasPermission, parsePermissions, PERMISSIONS } from './permissions.js';
 
 const PORT = Number(process.env.PORT ?? process.env.NTD_API_PORT ?? 5181);
 const HOST = process.env.HOST ?? '0.0.0.0';
@@ -288,6 +308,16 @@ function authenticate(req, res, next) {
     return res.status(401).json({ error: 'session_expired' });
   }
   req.user = db.prepare('SELECT * FROM users WHERE id = ?').get(session.user_id);
+  if (req.user.status !== 'active') {
+    return res.status(403).json({ error: 'account_inactive', message: 'This account is not active.' });
+  }
+  if (
+    req.user.role === 'team'
+    && !req.originalUrl.startsWith('/api/admin/')
+    && !req.originalUrl.startsWith('/api/auth/')
+  ) {
+    return res.status(403).json({ error: 'permission_denied', message: 'Team accounts cannot access customer trading APIs.' });
+  }
   req.sessionId = session.id;
   next();
 }
@@ -500,6 +530,7 @@ app.get('/api/funds/statements', authenticate, (req, res) => {
 app.post('/api/funds/transfer', authenticate, throttle(20, 60_000), (req, res) => {
   const direction = String(req.body?.direction ?? '').toLowerCase();
   const segment = String(req.body?.segment ?? '').toLowerCase();
+  const method = String(req.body?.method ?? (direction === 'add' ? 'UPI' : 'BANK')).toUpperCase();
   const amount = Number(req.body?.amount);
 
   if (!['add', 'withdraw'].includes(direction)) {
@@ -507,6 +538,10 @@ app.post('/api/funds/transfer', authenticate, throttle(20, 60_000), (req, res) =
   }
   if (!['equity', 'commodity'].includes(segment)) {
     return res.status(400).json({ error: 'invalid_segment', message: 'Choose a valid account segment.' });
+  }
+  const validMethods = direction === 'add' ? ['UPI', 'NETBANKING', 'IMPS', 'NEFT', 'RTGS'] : ['BANK'];
+  if (!validMethods.includes(method)) {
+    return res.status(400).json({ error: 'invalid_method', message: 'Choose a valid transfer method.' });
   }
   if (!Number.isFinite(amount) || amount <= 0 || amount > 10_000_000 || Math.round(amount * 100) !== amount * 100) {
     return res.status(400).json({ error: 'invalid_amount', message: 'Enter an amount between ₹0.01 and ₹1,00,00,000.' });
@@ -519,21 +554,23 @@ app.post('/api/funds/transfer', authenticate, throttle(20, 60_000), (req, res) =
   if (!account) {
     return res.status(404).json({ error: 'segment_not_found', message: 'This account segment is not available.' });
   }
-  if (direction === 'withdraw' && amount > account.availableCash) {
-    return res.status(400).json({ error: 'insufficient_cash', message: 'Withdrawal exceeds the available cash balance.' });
+  if (direction === 'withdraw' && amount > account.withdrawableBalance) {
+    return res.status(400).json({ error: 'insufficient_cash', message: 'Withdrawal exceeds the withdrawable balance after margin obligations.' });
   }
 
-  transferFunds(req.user.id, segment, direction, amount);
+  transferFunds(req.user.id, segment, direction, amount, method);
   res.json({ funds: fundsFor(req.user.id, { positions, quoteFor }) });
 });
 
 /** IPO and event calendar. Status is derived from today, so it cannot go stale. */
 app.get('/api/calendar', (_req, res) => res.json(calendarFor()));
 
+app.get('/api/market-timings', (_req, res) => res.json(marketTimings()));
+
 app.get('/api/bids', authenticate, (req, res) => res.json(bidBookFor(req.user.id)));
 
 app.post('/api/bids', authenticate, throttle(20, 60_000), (req, res) => {
-  const result = placeBid(req.user.id, Number(req.body?.issueId), Number(req.body?.lots), Number(req.body?.price));
+  const result = placeBid(req.user.id, Number(req.body?.issueId), Number(req.body?.lots), Number(req.body?.price), req.body?.isCutoff === true);
   if (result.error) return res.status(result.error === 'not_found' ? 404 : 400).json(result);
   res.status(201).json(result);
 });
@@ -546,7 +583,20 @@ app.delete('/api/bids/:id', authenticate, throttle(20, 60_000), (req, res) => {
 
 /** Settled demat stock. Records only, same reasoning as positions. */
 app.get('/api/holdings', authenticate, (req, res) => {
-  res.json({ holdings: holdingRowsFor(req.user.id).map(presentHolding) });
+  res.json({ holdings: holdingRowsFor(req.user.id).map(presentHolding), unsettled: unsettledHoldingsFor(req.user.id) });
+});
+
+app.post('/api/holdings/:symbol/exit', authenticate, throttle(20, 60_000), (req, res) => {
+  const symbol = String(req.params.symbol ?? '').trim().toUpperCase();
+  const quantity = Number(req.body?.quantity);
+  const quote = hub.latest.get(symbol);
+  if (!quote) return res.status(404).json({ error: 'quote_unavailable', message: 'No replay quote is available for this holding.' });
+  try {
+    const result = exitHolding(req.user.id, symbol, quantity, quote.ltp);
+    res.status(201).json({ order: result.order, holdings: holdingRowsFor(req.user.id).map(presentHolding) });
+  } catch (error) {
+    res.status(409).json({ error: 'holding_exit_failed', message: error.message });
+  }
 });
 
 app.get('/api/mutual-funds', authenticate, (req, res) => {
@@ -556,6 +606,15 @@ app.get('/api/mutual-funds', authenticate, (req, res) => {
 /** Records only — the browser merges these with its own live tick stream. */
 app.get('/api/positions', authenticate, (req, res) => {
   res.json({ positions: positionRowsFor(req.user.id).map(presentPosition) });
+});
+
+app.post('/api/positions/convert', authenticate, throttle(20, 60_000), (req, res) => {
+  const instrument = String(req.body?.instrument ?? '').trim();
+  const fromProduct = String(req.body?.fromProduct ?? '').toUpperCase();
+  const toProduct = String(req.body?.toProduct ?? '').toUpperCase();
+  const result = convertPosition(req.user.id, instrument, fromProduct, toProduct);
+  if (result.error) return res.status(result.error === 'not_found' ? 404 : 409).json(result);
+  res.json(result);
 });
 
 app.get('/api/orders', authenticate, (req, res) => {
@@ -586,29 +645,162 @@ app.delete('/api/order-tools/:id', authenticate, throttle(30, 60_000), (req, res
   res.json(result);
 });
 
+app.get('/api/order-tools/:id/margin', authenticate, (req, res) => {
+  const margin = basketMargin(req.user.id, Number(req.params.id), (symbol) => hub.latest.get(symbol));
+  if (!margin) return res.status(404).json({ error: 'not_found', message: 'Basket not found.' });
+  res.json({ margin });
+});
+
+app.post('/api/order-tools/:id/execute', authenticate, throttle(20, 60_000), (req, res) => {
+  const result = executeBasket(req.user.id, Number(req.params.id), (symbol) => hub.latest.get(symbol), req.body?.onlyRejected === true);
+  if (result.error) return res.status(result.error === 'not_found' ? 404 : 409).json(result);
+  res.status(201).json(result);
+});
+
+app.post('/api/order-tools/:id/clone', authenticate, throttle(20, 60_000), (req, res) => {
+  const result = cloneBasket(req.user.id, Number(req.params.id));
+  if (result.error) return res.status(404).json(result);
+  res.status(201).json(result);
+});
+
 app.post('/api/orders', authenticate, throttle(60, 60_000), (req, res) => {
   const instrument = String(req.body?.instrument ?? '').trim();
   const side = String(req.body?.side ?? '').toUpperCase();
   const product = String(req.body?.product ?? '').toUpperCase();
+  const variety = String(req.body?.variety ?? 'REGULAR').toUpperCase();
+  const orderType = String(req.body?.orderType ?? 'MARKET').toUpperCase();
+  const triggerPrice = req.body?.triggerPrice == null ? null : Number(req.body.triggerPrice);
+  const limitPrice = req.body?.limitPrice == null ? null : Number(req.body.limitPrice);
+  const isAmo = req.body?.isAmo === true;
+  const icebergLegs = req.body?.icebergLegs == null ? null : Number(req.body.icebergLegs);
+  const validity = String(req.body?.validity ?? 'DAY').toUpperCase();
+  const validityMinutes = req.body?.validityMinutes == null ? null : Number(req.body.validityMinutes);
   const qty = Number(req.body?.qty);
   const quote = hub.latest.get(instrument);
 
   if (!quote) return res.status(404).json({ error: 'unknown_instrument', message: 'No market quote is available.' });
   if (!['BUY', 'SELL'].includes(side)) return res.status(400).json({ error: 'invalid_side', message: 'Choose buy or sell.' });
   if (!['CNC', 'MIS', 'NRML'].includes(product)) return res.status(400).json({ error: 'invalid_product', message: 'Choose a valid product.' });
+  if (product === 'CNC' && !['NSE', 'BSE'].includes(quote.exchange)) return res.status(400).json({ error: 'invalid_product', message: 'CNC is available only for cash equity instruments.' });
+  if (product === 'NRML' && ['NSE', 'BSE'].includes(quote.exchange)) return res.status(400).json({ error: 'invalid_product', message: 'NRML is available only for derivatives and commodities.' });
+  if (!['REGULAR', 'CO'].includes(variety)) return res.status(400).json({ error: 'invalid_variety', message: 'Choose a valid order variety.' });
+  if (!['MARKET', 'LIMIT', 'SL', 'SL-M'].includes(orderType)) return res.status(400).json({ error: 'invalid_order_type', message: 'Choose Market, Limit, SL, or SL-M.' });
+  const instrumentSpec = parseInstrument(instrument);
+  const isIndexOption = instrumentSpec.kind === 'option' && ['NIFTY', 'BANKNIFTY', 'FINNIFTY'].includes(instrumentSpec.underlying);
+  if (instrumentSpec.kind === 'option' && !isIndexOption && orderType === 'MARKET') return res.status(400).json({ error: 'market_order_blocked', message: 'Market orders are blocked for stock options. Use a protected limit order.' });
+  if (isIndexOption && orderType === 'SL-M') return res.status(400).json({ error: 'slm_order_blocked', message: 'SL-M orders are blocked for index options. Use an SL order with a limit price.' });
+  if (variety === 'CO') {
+    if (quote.exchange !== 'NSE' || product !== 'MIS') return res.status(400).json({ error: 'invalid_cover_order', message: 'Cover Orders require an NSE equity instrument with MIS.' });
+    if (!['MARKET', 'LIMIT'].includes(orderType)) return res.status(400).json({ error: 'invalid_cover_order', message: 'Cover Orders support Market or Limit entry.' });
+    if (isAmo || icebergLegs != null) return res.status(400).json({ error: 'invalid_cover_order', message: 'AMO and Iceberg are available only for regular orders.' });
+    if (!Number.isFinite(triggerPrice) || triggerPrice <= 0) return res.status(400).json({ error: 'invalid_trigger', message: 'Enter a valid stop-loss trigger price.' });
+    const entryPrice = orderType === 'LIMIT' ? limitPrice : quote.ltp;
+    if (side === 'BUY' && triggerPrice >= entryPrice) return res.status(400).json({ error: 'invalid_trigger', message: 'A buy Cover Order trigger must be below the entry price.' });
+    if (side === 'SELL' && triggerPrice <= entryPrice) return res.status(400).json({ error: 'invalid_trigger', message: 'A sell Cover Order trigger must be above the entry price.' });
+  }
+  if (['LIMIT', 'SL'].includes(orderType) && (!Number.isFinite(limitPrice) || limitPrice <= 0)) return res.status(400).json({ error: 'invalid_price', message: 'Enter a valid limit price.' });
+  if (['SL', 'SL-M'].includes(orderType)) {
+    if (!Number.isFinite(triggerPrice) || triggerPrice <= 0) return res.status(400).json({ error: 'invalid_trigger', message: 'Enter a valid trigger price.' });
+    if (side === 'BUY' && triggerPrice <= quote.ltp) return res.status(400).json({ error: 'invalid_trigger', message: 'A buy stop trigger must be above the current price.' });
+    if (side === 'SELL' && triggerPrice >= quote.ltp) return res.status(400).json({ error: 'invalid_trigger', message: 'A sell stop trigger must be below the current price.' });
+    if (orderType === 'SL' && side === 'BUY' && limitPrice < triggerPrice) return res.status(400).json({ error: 'invalid_price', message: 'A buy SL limit must be at or above its trigger.' });
+    if (orderType === 'SL' && side === 'SELL' && limitPrice > triggerPrice) return res.status(400).json({ error: 'invalid_price', message: 'A sell SL limit must be at or below its trigger.' });
+  }
+  if (icebergLegs != null && (!Number.isInteger(icebergLegs) || icebergLegs < 2 || icebergLegs > 10)) return res.status(400).json({ error: 'invalid_iceberg', message: 'Iceberg orders require 2 to 10 legs.' });
+  if (icebergLegs != null && instrumentSpec.kind === 'equity' && qty * quote.ltp < 100_000) return res.status(400).json({ error: 'invalid_iceberg', message: 'Equity Iceberg orders require a minimum value of ₹1,00,000.' });
+  if (!['DAY', 'IOC', 'MINUTES'].includes(validity)) return res.status(400).json({ error: 'invalid_validity', message: 'Choose DAY, IOC, or minute validity.' });
+  if (validity === 'MINUTES' && (!Number.isInteger(validityMinutes) || validityMinutes < 1 || validityMinutes > 120)) return res.status(400).json({ error: 'invalid_validity', message: 'Minute validity must be between 1 and 120.' });
   if (!Number.isInteger(qty) || qty < 1 || qty > 100_000) {
     return res.status(400).json({ error: 'invalid_quantity', message: 'Quantity must be between 1 and 100,000.' });
   }
+  if (icebergLegs && qty < icebergLegs) return res.status(400).json({ error: 'invalid_iceberg', message: 'Quantity must be at least the number of iceberg legs.' });
 
-  const order = placeMarketOrder(req.user.id, {
+  const order = placeOrder(req.user.id, {
     side,
     instrument,
     exchange: quote.exchange,
     product,
     qty,
     price: quote.ltp,
+    variety,
+    triggerPrice,
+    orderType,
+    limitPrice,
+    isAmo,
+    icebergLegs,
+    validity,
+    expiresAt: validity === 'MINUTES' ? new Date(Date.now() + validityMinutes * 60_000).toISOString().slice(0, 19).replace('T', ' ') : null,
   });
   res.status(201).json({ order });
+});
+
+app.patch('/api/orders/:id', authenticate, throttle(60, 60_000), (req, res) => {
+  const current = orderFor(req.user.id, Number(req.params.id));
+  if (!current) return res.status(404).json({ error: 'not_found', message: 'Order not found.' });
+  if (!['OPEN', 'TRIGGER PENDING', 'AMO PENDING'].includes(current.status)) {
+    return res.status(409).json({ error: 'not_modifiable', message: 'Only pending orders can be modified.' });
+  }
+
+  const qty = Number(req.body?.qty);
+  const limitPrice = ['LIMIT', 'SL'].includes(current.orderType) ? Number(req.body?.limitPrice) : current.limitPrice;
+  const triggerPrice = current.variety === 'CO' || ['SL', 'SL-M'].includes(current.orderType) ? Number(req.body?.triggerPrice) : current.triggerPrice;
+  const validity = String(req.body?.validity ?? current.validity).toUpperCase();
+  const validityMinutes = req.body?.validityMinutes == null ? null : Number(req.body.validityMinutes);
+  const quote = hub.latest.get(current.instrument);
+
+  if (!quote) return res.status(409).json({ error: 'quote_unavailable', message: 'No replay quote is available for this order.' });
+  if (!Number.isInteger(qty) || qty < 1 || qty > 100_000) return res.status(400).json({ error: 'invalid_quantity', message: 'Quantity must be between 1 and 100,000.' });
+  if (['LIMIT', 'SL'].includes(current.orderType) && (!Number.isFinite(limitPrice) || limitPrice <= 0)) return res.status(400).json({ error: 'invalid_price', message: 'Enter a valid limit price.' });
+  if (current.variety === 'CO') {
+    const entryPrice = current.orderType === 'LIMIT' ? limitPrice : quote.ltp;
+    if (!Number.isFinite(triggerPrice) || triggerPrice <= 0 || (current.side === 'BUY' ? triggerPrice >= entryPrice : triggerPrice <= entryPrice)) {
+      return res.status(400).json({ error: 'invalid_trigger', message: `A ${current.side.toLowerCase()} Cover Order trigger must be ${current.side === 'BUY' ? 'below' : 'above'} the entry price.` });
+    }
+  } else if (['SL', 'SL-M'].includes(current.orderType)) {
+    if (!Number.isFinite(triggerPrice) || triggerPrice <= 0) return res.status(400).json({ error: 'invalid_trigger', message: 'Enter a valid trigger price.' });
+    if (current.status !== 'OPEN' && current.side === 'BUY' && triggerPrice <= quote.ltp) return res.status(400).json({ error: 'invalid_trigger', message: 'A buy stop trigger must be above the current price.' });
+    if (current.status !== 'OPEN' && current.side === 'SELL' && triggerPrice >= quote.ltp) return res.status(400).json({ error: 'invalid_trigger', message: 'A sell stop trigger must be below the current price.' });
+    if (current.orderType === 'SL' && current.side === 'BUY' && limitPrice < triggerPrice) return res.status(400).json({ error: 'invalid_price', message: 'A buy SL limit must be at or above its trigger.' });
+    if (current.orderType === 'SL' && current.side === 'SELL' && limitPrice > triggerPrice) return res.status(400).json({ error: 'invalid_price', message: 'A sell SL limit must be at or below its trigger.' });
+  }
+  if (!['DAY', 'MINUTES'].includes(validity)) return res.status(400).json({ error: 'invalid_validity', message: 'Pending orders can use DAY or minute validity.' });
+  if (validity === 'MINUTES' && (!Number.isInteger(validityMinutes) || validityMinutes < 1 || validityMinutes > 120)) return res.status(400).json({ error: 'invalid_validity', message: 'Minute validity must be between 1 and 120.' });
+
+  const order = modifyOrder(req.user.id, current.id, {
+    qty,
+    limitPrice,
+    triggerPrice,
+    validity,
+    expiresAt: validity === 'MINUTES' ? new Date(Date.now() + validityMinutes * 60_000).toISOString().slice(0, 19).replace('T', ' ') : null,
+  });
+  if (!order) return res.status(409).json({ error: 'not_modifiable', message: 'The order is no longer pending.' });
+  if (order.error) return res.status(400).json(order);
+  res.json({ order });
+});
+
+app.get('/api/trades', authenticate, (req, res) => res.json({ trades: tradesFor(req.user.id) }));
+
+app.delete('/api/orders/:id', authenticate, throttle(60, 60_000), (req, res) => {
+  const order = cancelOrder(req.user.id, Number(req.params.id));
+  if (!order) return res.status(409).json({ error: 'not_cancellable', message: 'Only pending orders can be cancelled.' });
+  res.json({ order });
+});
+
+app.post('/api/positions/exit', authenticate, throttle(20, 60_000), (req, res) => {
+  const requested = Array.isArray(req.body?.positions) ? req.body.positions : [];
+  if (!requested.length || requested.length > 50) return res.status(400).json({ error: 'invalid_positions', message: 'Select between 1 and 50 positions.' });
+  const exits = requested.map((item) => {
+    const instrument = String(item?.instrument ?? '').trim();
+    const product = String(item?.product ?? '').toUpperCase();
+    const quote = hub.latest.get(instrument);
+    return quote && ['CNC', 'MIS', 'NRML'].includes(product) ? { instrument, product, price: quote.ltp } : null;
+  });
+  if (exits.some((item) => !item)) return res.status(400).json({ error: 'invalid_positions', message: 'A selected position has no replay quote or valid product.' });
+  try {
+    res.status(201).json({ orders: exitPositions(req.user.id, exits) });
+  } catch (error) {
+    res.status(409).json({ error: 'position_changed', message: error.message });
+  }
 });
 
 /* ---------------- market data ---------------- */
@@ -718,7 +910,7 @@ app.post('/api/signup/verify-otp', throttle(20, 60_000), (req, res) => {
     ok: true,
     alreadyRegistered: taken.mobile,
     message: taken.mobile
-      ? 'This mobile number already has an NTD account. Sign in instead, or recover your user ID.'
+      ? 'This mobile number already has a uni-share account. Sign in instead, or recover your user ID.'
       : 'Mobile number verified.',
   });
 });
@@ -768,7 +960,7 @@ app.post('/api/signup/details', throttle(20, 60_000), (req, res) => {
   if (findByEmail(email)) {
     return res.status(409).json({
       error: 'email_taken',
-      message: 'That email already has an NTD account. Sign in instead.',
+      message: 'That email already has a uni-share account. Sign in instead.',
     });
   }
 
@@ -808,7 +1000,7 @@ app.post('/api/signup/complete', throttle(20, 60_000), (req, res) => {
   }
 
   const { clientId, totpSecret } = completeApplication(application, password);
-  const otpauthUri = `otpauth://totp/NTD:${encodeURIComponent(clientId)}?secret=${totpSecret}&issuer=NTD&algorithm=SHA1&digits=6&period=30`;
+  const otpauthUri = `otpauth://totp/uni-share:${encodeURIComponent(clientId)}?secret=${totpSecret}&issuer=uni-share&algorithm=SHA1&digits=6&period=30`;
 
   console.log(`[signup] account opened: ${clientId}`);
   res.status(201).json({ clientId, totpSecret, otpauthUri });
@@ -834,9 +1026,409 @@ function requireAdmin(req, res, next) {
 
 const admin = [authenticate, requireAdmin];
 
-app.get('/api/admin/providers/catalogue', admin, (_req, res) => res.json({ catalogue: CATALOGUE }));
+function requirePermission(permission) {
+  return (req, res, next) => {
+    if (!hasPermission(req.user, permission)) {
+      return res.status(403).json({ error: 'permission_denied', message: 'You do not have access to this function.' });
+    }
+    next();
+  };
+}
 
-app.get('/api/admin/providers', admin, (req, res) => {
+const permitted = (permission) => [authenticate, requirePermission(permission)];
+
+const marketUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+});
+
+/* ---------------- admin: user access ---------------- */
+
+const presentTeamUser = (row) => ({
+  id: row.id,
+  clientId: row.client_id,
+  name: row.name,
+  email: row.email,
+  phone: row.phone,
+  status: row.status,
+  permissions: parsePermissions(row.permissions_json),
+  lastLoginAt: row.last_login_at,
+  createdAt: row.created_at,
+});
+
+const auditUserAccess = (subjectUserId, action, detail, actor) => db.prepare(
+  `INSERT INTO user_access_audit
+     (subject_user_id, action, detail, actor_id, actor_client_id)
+   VALUES (?, ?, ?, ?, ?)`,
+).run(subjectUserId ?? null, action, detail ?? null, actor.id, actor.client_id);
+
+app.get('/api/admin/access/permissions', admin, (_req, res) => res.json({ permissions: PERMISSIONS }));
+
+app.get('/api/admin/access/users', admin, (_req, res) => {
+  const users = db.prepare("SELECT * FROM users WHERE role = 'team' ORDER BY name, client_id").all().map(presentTeamUser);
+  res.json({ users });
+});
+
+app.post('/api/admin/access/users', admin, (req, res) => {
+  const clientId = String(req.body?.clientId ?? '').trim().toUpperCase();
+  const name = String(req.body?.name ?? '').trim().replace(/\s+/g, ' ');
+  const email = String(req.body?.email ?? '').trim().toLowerCase();
+  const phone = String(req.body?.phone ?? '').trim();
+  const password = String(req.body?.password ?? '');
+  const permissions = parsePermissions(req.body?.permissions);
+  const passwordError = passwordProblem(password);
+
+  if (!/^[A-Z0-9_-]{4,24}$/.test(clientId)) {
+    return res.status(400).json({ error: 'invalid_client_id', message: 'User ID must be 4–24 letters, numbers, underscores, or hyphens.' });
+  }
+  if (name.length < 2 || name.length > 80) {
+    return res.status(400).json({ error: 'invalid_name', message: 'Enter a name between 2 and 80 characters.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 160) {
+    return res.status(400).json({ error: 'invalid_email', message: 'Enter a valid email address.' });
+  }
+  if (passwordError) return res.status(400).json({ error: 'invalid_password', message: passwordError });
+  if (findByClientId(clientId) || findByEmail(email)) {
+    return res.status(409).json({ error: 'user_exists', message: 'That user ID or email is already in use.' });
+  }
+
+  const secret = generateTotpSecret();
+  const info = db.prepare(
+    `INSERT INTO users
+       (client_id, name, email, phone, phone_digits, password_hash, totp_secret, role,
+        permissions_json, created_by, password_changed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'team', ?, ?, datetime('now'))`,
+  ).run(
+    clientId,
+    name,
+    email,
+    phone || null,
+    phone ? normalisePhone(phone) : null,
+    hashPassword(password),
+    secret,
+    JSON.stringify(permissions),
+    req.user.id,
+  );
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
+  auditUserAccess(user.id, 'created', permissions.join(', ') || 'No permissions', req.user);
+  res.status(201).json({ user: presentTeamUser(user), totpSecret: secret });
+});
+
+app.patch('/api/admin/access/users/:id', admin, (req, res) => {
+  const row = db.prepare("SELECT * FROM users WHERE id = ? AND role = 'team'").get(Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  const name = req.body?.name === undefined ? row.name : String(req.body.name).trim().replace(/\s+/g, ' ');
+  const email = req.body?.email === undefined ? row.email : String(req.body.email).trim().toLowerCase();
+  const phone = req.body?.phone === undefined ? row.phone : String(req.body.phone).trim();
+  const status = req.body?.status === undefined ? row.status : String(req.body.status);
+  const permissions = req.body?.permissions === undefined
+    ? parsePermissions(row.permissions_json)
+    : parsePermissions(req.body.permissions);
+  if (name.length < 2 || name.length > 80 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'invalid_profile', message: 'Enter a valid name and email address.' });
+  }
+  if (!['active', 'disabled'].includes(status)) {
+    return res.status(400).json({ error: 'invalid_status', message: 'Status must be active or disabled.' });
+  }
+  const duplicate = db.prepare('SELECT id FROM users WHERE (lower(email) = lower(?)) AND id != ?').get(email, row.id);
+  if (duplicate) return res.status(409).json({ error: 'email_taken', message: 'That email is already in use.' });
+  db.prepare(
+    `UPDATE users SET name = ?, email = ?, phone = ?, phone_digits = ?, status = ?, permissions_json = ? WHERE id = ?`,
+  ).run(name, email, phone || null, phone ? normalisePhone(phone) : null, status, JSON.stringify(permissions), row.id);
+  if (status === 'disabled') db.prepare('UPDATE sessions SET revoked_at = datetime(\'now\') WHERE user_id = ? AND revoked_at IS NULL').run(row.id);
+  auditUserAccess(row.id, 'updated', `${status} · ${permissions.join(', ') || 'No permissions'}`, req.user);
+  res.json({ user: presentTeamUser(db.prepare('SELECT * FROM users WHERE id = ?').get(row.id)) });
+});
+
+app.post('/api/admin/access/users/:id/reset-password', admin, (req, res) => {
+  const row = db.prepare("SELECT * FROM users WHERE id = ? AND role = 'team'").get(Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  const password = String(req.body?.password ?? '');
+  const problem = passwordProblem(password);
+  if (problem) return res.status(400).json({ error: 'invalid_password', message: problem });
+  db.prepare("UPDATE users SET password_hash = ?, password_changed_at = datetime('now'), failed_attempts = 0, locked_until = NULL WHERE id = ?").run(hashPassword(password), row.id);
+  db.prepare("UPDATE sessions SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").run(row.id);
+  auditUserAccess(row.id, 'password_reset', null, req.user);
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/access/audit', admin, (_req, res) => {
+  const entries = db.prepare(
+    `SELECT a.*, u.client_id AS subject_client_id, u.name AS subject_name
+     FROM user_access_audit a LEFT JOIN users u ON u.id = a.subject_user_id
+     ORDER BY a.id DESC LIMIT 100`,
+  ).all().map((entry) => ({
+    id: entry.id,
+    subject: entry.subject_client_id ?? 'Deleted user',
+    subjectName: entry.subject_name,
+    action: entry.action,
+    detail: entry.detail,
+    actor: entry.actor_client_id,
+    at: entry.created_at,
+  }));
+  res.json({ entries });
+});
+
+app.get('/api/admin/transactions', permitted('admin.transactions'), (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query.limit) || 200, 1), 500);
+  const transactions = db.prepare(
+    `SELECT t.*, u.client_id, u.name AS user_name
+     FROM fund_transactions t JOIN users u ON u.id = t.user_id
+     ORDER BY t.created_at DESC, t.id DESC LIMIT ?`,
+  ).all(limit).map((row) => ({
+    id: row.id,
+    clientId: row.client_id,
+    userName: row.user_name,
+    date: row.created_at,
+    segment: row.segment,
+    kind: row.kind,
+    amount: row.amount,
+    reference: row.reference,
+    description: row.description,
+    method: row.method,
+    status: row.status,
+    fee: row.fee,
+    expectedAt: row.expected_at,
+  }));
+  res.json({ transactions });
+});
+
+app.get('/api/admin/market-data', permitted('admin.market_data'), (_req, res) => {
+  res.json({ ...listMarketImports(), githubImports: listGitHubMinuteImports() });
+});
+
+app.post('/api/admin/market-data/github/discover', permitted('admin.market_data'), async (req, res) => {
+  try {
+    res.json(await discoverGitHubMinuteFiles(req.body?.folderUrl));
+  } catch (error) {
+    res.status(400).json({ error: 'github_discovery_failed', message: error.message });
+  }
+});
+
+app.post('/api/admin/market-data/github/import', permitted('admin.market_data'), async (req, res) => {
+  try {
+    const imported = await importGitHubMinuteFile({
+      folderUrl: req.body?.folderUrl,
+      filePath: String(req.body?.filePath ?? ''),
+      userId: req.user.id,
+    });
+    res.status(201).json({ import: imported });
+  } catch (error) {
+    res.status(400).json({ error: 'github_import_failed', message: error.message });
+  }
+});
+
+app.post('/api/admin/market-data/uploads', permitted('admin.market_data'), (req, res) => {
+  marketUpload.single('file')(req, res, async (uploadError) => {
+    if (uploadError) {
+      const tooLarge = uploadError.code === 'LIMIT_FILE_SIZE';
+      return res.status(400).json({
+        error: tooLarge ? 'file_too_large' : 'invalid_upload',
+        message: tooLarge ? 'The file must be 10 MB or smaller.' : uploadError.message,
+      });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'missing_file', message: 'Choose a CSV or XLSX file.' });
+    }
+
+    const extension = req.file.originalname.split('.').at(-1)?.toLowerCase();
+    if (!['csv', 'xlsx'].includes(extension)) {
+      return res.status(400).json({ error: 'invalid_file_type', message: 'Only .csv and .xlsx files are supported.' });
+    }
+
+    try {
+      const parsed = await parseMarketUpload(req.file.buffer, extension);
+      const upload = storeMarketImport({
+        filename: req.file.originalname.slice(0, 255),
+        fileType: extension,
+        parsed,
+        userId: req.user.id,
+      });
+      res.status(201).json({ upload, warnings: parsed.errors });
+    } catch (error) {
+      res.status(400).json({ error: 'invalid_market_file', message: error.message });
+    }
+  });
+});
+
+app.delete('/api/admin/market-data/days/:date', permitted('admin.market_data'), (req, res) => {
+  const tradingDate = String(req.params.date);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tradingDate)) {
+    return res.status(400).json({ error: 'invalid_date', message: 'Trading date must use YYYY-MM-DD.' });
+  }
+  const deletedRows = deleteImportedDay(tradingDate);
+  if (!deletedRows) {
+    return res.status(404).json({ error: 'not_found', message: 'No imported data exists for that date.' });
+  }
+  res.json({ ok: true, deletedRows });
+});
+
+/* ---------------- admin: payment integration master ---------------- */
+
+app.get('/api/admin/payment-integrations/catalogue', permitted('admin.payment_integrations'), (_req, res) => {
+  res.json({ catalogue: PAYMENT_CATALOGUE });
+});
+
+app.get('/api/admin/payment-integrations', permitted('admin.payment_integrations'), (req, res) => {
+  const kind = req.query.kind;
+  if (kind && !isPaymentKind(kind)) {
+    return res.status(400).json({ error: 'invalid_kind', message: 'Kind must be bank or upi.' });
+  }
+  res.json({ integrations: listPaymentIntegrations(kind), keyIsEphemeral: MASTER_KEY_IS_EPHEMERAL });
+});
+
+app.post('/api/admin/payment-integrations', permitted('admin.payment_integrations'), (req, res) => {
+  const { kind, driver, name, accountIdentity, values } = req.body ?? {};
+  if (!isPaymentKind(kind)) {
+    return res.status(400).json({ error: 'invalid_kind', message: 'Kind must be bank or upi.' });
+  }
+  const spec = paymentDriverSpec(kind, driver);
+  if (!spec) {
+    return res.status(400).json({ error: 'unknown_driver', message: 'That integration type is not supported.' });
+  }
+  if (!String(name ?? '').trim() || !String(accountIdentity ?? '').trim()) {
+    return res.status(400).json({
+      error: 'missing_identity',
+      message: 'Display name and account identity are required.',
+    });
+  }
+  const { settings, secrets, missing } = partitionFields(spec, values);
+  const missingSecrets = requiredSecretsMissing(spec, secrets, null);
+  if (missing.length || missingSecrets.length) {
+    return res.status(400).json({
+      error: 'missing_fields',
+      message: `Required: ${[...missing, ...missingSecrets].join(', ')}.`,
+    });
+  }
+  const isFirst = !db.prepare('SELECT 1 FROM payment_integrations WHERE kind = ?').get(kind);
+  const info = db.prepare(
+    `INSERT INTO payment_integrations
+       (kind, name, driver, account_identity, settings_json, secret_cipher, is_default, created_by, updated_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    kind,
+    String(name).trim(),
+    driver,
+    String(accountIdentity).trim(),
+    JSON.stringify(settings),
+    mergeSecrets(null, secrets),
+    isFirst ? 1 : 0,
+    req.user.id,
+    req.user.id,
+  );
+  auditPaymentIntegration(Number(info.lastInsertRowid), kind, 'created', `${driver} · ${name}`, req.user);
+  res.status(201).json({ integration: presentPaymentIntegration(
+    db.prepare('SELECT * FROM payment_integrations WHERE id = ?').get(info.lastInsertRowid),
+  ) });
+});
+
+app.patch('/api/admin/payment-integrations/:id', permitted('admin.payment_integrations'), (req, res) => {
+  const row = db.prepare('SELECT * FROM payment_integrations WHERE id = ?').get(Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  const spec = paymentDriverSpec(row.kind, row.driver);
+  const { name, accountIdentity, values, isActive } = req.body ?? {};
+  const { settings, secrets, missing } = partitionFields(spec, values ?? {});
+  if (values && missing.length) {
+    return res.status(400).json({ error: 'missing_fields', message: `Required: ${missing.join(', ')}.` });
+  }
+  const nextName = String(name ?? row.name).trim();
+  const nextIdentity = accountIdentity === undefined
+    ? row.account_identity
+    : String(accountIdentity).trim();
+  if (!nextName || !nextIdentity) {
+    return res.status(400).json({ error: 'missing_identity', message: 'Display name and account identity are required.' });
+  }
+  if (row.is_default && isActive === false) {
+    return res.status(400).json({
+      error: 'is_default',
+      message: 'Make another integration the default before disabling this one.',
+    });
+  }
+  db.prepare(
+    `UPDATE payment_integrations
+     SET name = ?, account_identity = ?, settings_json = ?, secret_cipher = ?, is_active = ?,
+         updated_by = ?, updated_at = datetime('now')
+     WHERE id = ?`,
+  ).run(
+    nextName,
+    nextIdentity,
+    values ? JSON.stringify(settings) : row.settings_json,
+    Object.keys(secrets).length ? mergeSecrets(row.secret_cipher, secrets) : row.secret_cipher,
+    isActive === undefined ? row.is_active : isActive ? 1 : 0,
+    req.user.id,
+    row.id,
+  );
+  auditPaymentIntegration(row.id, row.kind, 'updated', Object.keys(secrets).length ? 'settings and credentials' : 'settings', req.user);
+  res.json({ integration: presentPaymentIntegration(
+    db.prepare('SELECT * FROM payment_integrations WHERE id = ?').get(row.id),
+  ) });
+});
+
+app.post('/api/admin/payment-integrations/:id/default', permitted('admin.payment_integrations'), (req, res) => {
+  const row = db.prepare('SELECT * FROM payment_integrations WHERE id = ?').get(Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  if (!row.is_active) {
+    return res.status(400).json({ error: 'inactive', message: 'Activate this integration before making it default.' });
+  }
+  db.prepare('UPDATE payment_integrations SET is_default = 0 WHERE kind = ?').run(row.kind);
+  db.prepare("UPDATE payment_integrations SET is_default = 1, updated_at = datetime('now') WHERE id = ?").run(row.id);
+  auditPaymentIntegration(row.id, row.kind, 'set_default', row.name, req.user);
+  res.json({ integrations: listPaymentIntegrations(row.kind) });
+});
+
+app.post('/api/admin/payment-integrations/:id/test', permitted('admin.payment_integrations'), (req, res) => {
+  const row = db.prepare('SELECT * FROM payment_integrations WHERE id = ?').get(Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  const spec = paymentDriverSpec(row.kind, row.driver);
+  const stored = row.secret_cipher ? JSON.parse(decryptSecret(row.secret_cipher) ?? '{}') : {};
+  const settings = JSON.parse(row.settings_json ?? '{}');
+  const missing = spec.fields
+    .filter((field) => field.required)
+    .filter((field) => field.secret ? !stored[field.key] : settings[field.key] === undefined)
+    .map((field) => field.label);
+  const ok = missing.length === 0 && !!row.account_identity;
+  const message = ok
+    ? 'Configuration is complete and credentials decrypt correctly. No payment was initiated.'
+    : `Incomplete: ${[...missing, ...(row.account_identity ? [] : [spec.identityLabel])].join(', ')}.`;
+  db.prepare(
+    "UPDATE payment_integrations SET last_tested_at = datetime('now'), last_test_ok = ?, last_test_message = ? WHERE id = ?",
+  ).run(ok ? 1 : 0, message, row.id);
+  auditPaymentIntegration(row.id, row.kind, 'tested', ok ? 'passed' : 'failed', req.user);
+  res.json({ ok, message, integration: presentPaymentIntegration(
+    db.prepare('SELECT * FROM payment_integrations WHERE id = ?').get(row.id),
+  ) });
+});
+
+app.delete('/api/admin/payment-integrations/:id', permitted('admin.payment_integrations'), (req, res) => {
+  const row = db.prepare('SELECT * FROM payment_integrations WHERE id = ?').get(Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  if (row.is_default) {
+    return res.status(400).json({
+      error: 'is_default',
+      message: 'Make another integration the default for this kind first.',
+    });
+  }
+  db.prepare('DELETE FROM payment_integrations WHERE id = ?').run(row.id);
+  auditPaymentIntegration(null, row.kind, 'deleted', `${row.driver} · ${row.name}`, req.user);
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/payment-integrations/audit', permitted('admin.payment_integrations'), (_req, res) => {
+  res.json({
+    entries: db.prepare('SELECT * FROM payment_integration_audit ORDER BY id DESC LIMIT 50').all().map((entry) => ({
+      id: entry.id,
+      kind: entry.kind,
+      action: entry.action,
+      detail: entry.detail,
+      actor: entry.actor_client_id,
+      at: entry.created_at,
+    })),
+  });
+});
+
+app.get('/api/admin/providers/catalogue', permitted('admin.notification_providers'), (_req, res) => res.json({ catalogue: CATALOGUE }));
+
+app.get('/api/admin/providers', permitted('admin.notification_providers'), (req, res) => {
   const channel = req.query.channel;
   if (channel && !isChannel(channel)) {
     return res.status(400).json({ error: 'invalid_channel', message: `Channel must be one of: ${Object.keys(CATALOGUE).join(", ")}.` });
@@ -844,7 +1436,7 @@ app.get('/api/admin/providers', admin, (req, res) => {
   res.json({ providers: listProviders(channel), keyIsEphemeral: MASTER_KEY_IS_EPHEMERAL });
 });
 
-app.post('/api/admin/providers', admin, (req, res) => {
+app.post('/api/admin/providers', permitted('admin.notification_providers'), (req, res) => {
   const { channel, driver, name, fromIdentity, values } = req.body ?? {};
 
   if (!isChannel(channel)) {
@@ -895,7 +1487,7 @@ app.post('/api/admin/providers', admin, (req, res) => {
   ) });
 });
 
-app.patch('/api/admin/providers/:id', admin, (req, res) => {
+app.patch('/api/admin/providers/:id', permitted('admin.notification_providers'), (req, res) => {
   const row = db.prepare('SELECT * FROM notification_providers WHERE id = ?').get(Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'not_found' });
 
@@ -930,7 +1522,7 @@ app.patch('/api/admin/providers/:id', admin, (req, res) => {
   ) });
 });
 
-app.post('/api/admin/providers/:id/default', admin, (req, res) => {
+app.post('/api/admin/providers/:id/default', permitted('admin.notification_providers'), (req, res) => {
   const row = db.prepare('SELECT * FROM notification_providers WHERE id = ?').get(Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'not_found' });
   if (!row.is_active) {
@@ -945,7 +1537,7 @@ app.post('/api/admin/providers/:id/default', admin, (req, res) => {
   res.json({ providers: listProviders(row.channel) });
 });
 
-app.post('/api/admin/providers/:id/test', admin, (req, res) => {
+app.post('/api/admin/providers/:id/test', permitted('admin.notification_providers'), (req, res) => {
   const row = db.prepare('SELECT * FROM notification_providers WHERE id = ?').get(Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'not_found' });
 
@@ -974,7 +1566,7 @@ app.post('/api/admin/providers/:id/test', admin, (req, res) => {
   ) });
 });
 
-app.delete('/api/admin/providers/:id', admin, (req, res) => {
+app.delete('/api/admin/providers/:id', permitted('admin.notification_providers'), (req, res) => {
   const row = db.prepare('SELECT * FROM notification_providers WHERE id = ?').get(Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'not_found' });
   if (row.is_default) {
@@ -989,7 +1581,7 @@ app.delete('/api/admin/providers/:id', admin, (req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/api/admin/providers/audit', admin, (_req, res) => {
+app.get('/api/admin/providers/audit', permitted('admin.notification_providers'), (_req, res) => {
   res.json({
     entries: db
       .prepare('SELECT * FROM provider_audit ORDER BY id DESC LIMIT 50')
@@ -1047,9 +1639,11 @@ const positionRows = seedPositions();
 const holdingRows = seedHoldings();
 const mutualFundRows = seedMutualFunds();
 const calendarRows = seedCalendar();
+hub.onTick(processPendingOrders);
+hub.onTick((tick) => processOrderTools(tick, (symbol) => hub.latest.get(symbol)));
 await hub.start();
 const server = app.listen(PORT, HOST, () => {
-  console.log(`NTD app listening on http://${HOST}:${PORT}`);
+  console.log(`uni-share app listening on http://${HOST}:${PORT}`);
   console.log(`database: ${DB_PATH}`);
   if (created.length && DEV_HELPERS) {
     console.log('\nseeded demo accounts (password shown once, stored only as a scrypt hash):');

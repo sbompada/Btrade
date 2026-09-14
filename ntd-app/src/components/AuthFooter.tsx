@@ -18,18 +18,21 @@ export default function AuthFooter() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon.Logo size={17} />
           <span className="brand-word" style={{ fontSize: 12 }}>
-            NTD
+            uni-share
           </span>
         </div>
         <span style={{ fontSize: 12, color: 'var(--muted)' }}>
           Don&rsquo;t have an account? <Link to="/signup">Open one for free</Link>
         </span>
+        <Link to="/policies-and-procedures" className="legal-link">
+          Policies and Procedures
+        </Link>
       </div>
 
       {SHOW_REGULATORY_FOOTER && (
         <div className="auth-foot">
           <span>
-            NTD Broking Private Limited — member of NSE, BSE and MCX. SEBI registration no.
+            uni-share Broking Private Limited — member of NSE, BSE and MCX. SEBI registration no.
             [SEBI REG NO] · CIN [CIN].
           </span>
           <span>

@@ -1,4 +1,5 @@
 import { db } from './db.js';
+import { istDateKey } from './time.js';
 
 /**
  * Demat holdings — settled stock, as opposed to intraday/F&O positions.
@@ -66,3 +67,17 @@ export const presentHolding = (row) => ({
   avgCost: row.avg_cost,
   pledgedQty: row.pledged_qty,
 });
+
+export const unsettledHoldingsFor = (userId) => db.prepare(`
+  SELECT instrument, exchange, qty, avg_price, opened_at
+  FROM open_positions
+  WHERE user_id = ? AND product = 'CNC' AND qty > 0
+  ORDER BY opened_at DESC, instrument
+`).all(userId).map((row) => ({
+  symbol: row.instrument,
+  exchange: row.exchange,
+  qty: row.qty,
+  avgCost: row.avg_price,
+  openedAt: row.opened_at,
+  settlementStatus: istDateKey(new Date(`${row.opened_at.replace(' ', 'T')}Z`)) === istDateKey() ? 'TODAY' : 'T1',
+}));

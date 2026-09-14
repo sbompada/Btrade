@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import * as Icon from '../components/Icons';
 import { useMutualFunds, type MutualFundHolding } from '../market/useMutualFunds';
-import { num, signedPct, signedRupees, toneOf, whole } from '../lib/format';
+import { istDateKey, num, signedPct, signedRupees, toneOf, whole } from '../lib/format';
 
 type SortKey = 'value' | 'pnl' | 'name';
 
@@ -35,7 +35,7 @@ export default function MutualFunds() {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `ntd-mutual-funds-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.download = `ntd-mutual-funds-${istDateKey()}.csv`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 0);
   };

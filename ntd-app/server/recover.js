@@ -132,7 +132,7 @@ if (action === 'reset-totp') {
   db.prepare("UPDATE totp_challenges SET consumed_at = datetime('now') WHERE user_id = ? AND consumed_at IS NULL").run(user.id);
   db.prepare("UPDATE sessions SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").run(user.id);
 
-  const uri = `otpauth://totp/NTD:${encodeURIComponent(clientId)}?secret=${secret}&issuer=NTD&algorithm=SHA1&digits=6&period=30`;
+  const uri = `otpauth://totp/uni-share:${encodeURIComponent(clientId)}?secret=${secret}&issuer=uni-share&algorithm=SHA1&digits=6&period=30`;
   record(clientId, 'reset-totp', 'new secret issued');
   console.log(`\n  New 2FA secret for ${clientId}:\n\n      ${secret}\n`);
   console.log(`  Enrol with:\n\n      ${uri}\n`);

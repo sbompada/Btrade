@@ -13,10 +13,18 @@ const base = (size: number) => ({
 
 const base16 = (size: number) => ({ ...base(size), viewBox: '0 0 16 16', strokeWidth: 1.4 });
 
-export const Logo = ({ size = 19 }: Props) => (
-  <svg {...base(size)} strokeWidth={1.7} style={{ color: 'var(--amber)' }}>
-    <path d="M2.5 4 L10 17 L17.5 4" />
-    <path d="M6.6 4 L10 10 L13.4 4" />
+export const Logo = ({ size = 19, className }: Props) => (
+  <svg
+    width={size * 1.9}
+    height={size}
+    viewBox="0 0 38 20"
+    fill="none"
+    className={className}
+    aria-hidden="true"
+  >
+    <path fill="#123d6a" d="M2 11.7 7.3 6l4.4.8 3.5-3.1 5.2.4 3.1-2.6 7 .6-4.6 2.1 7.7 1.2-5.8 1.2 4.6 2.6-6.2-.8 3.2 3-6.4-1.7-4.3 4.7-6.8.1-3.3 3.4H3.3l2.8-3.6L2 11.7Z" />
+    <path fill="#397936" d="m17.7 13.1 4.2-4.5 4.1 1.1-3.4 1.1 4.2 1.5-5-.1-2.7 3.3-5.4-.1 2.3-2.3h1.7Z" />
+    <path fill="#123d6a" d="m9.3 14.2 4.1.1-2.1 3.6H8.1l1.2-3.7Zm10.6.2 3.6-.5 2.1 4h-3.4l-2.3-3.5Z" />
   </svg>
 );
 
@@ -84,6 +92,33 @@ export const Bars = ({ size = 12 }: Props) => (
     <path d="M6.9 13.4V5" />
     <path d="M11.2 13.4V7" />
   </svg>
+);
+
+export const Depth = ({ size = 12 }: Props) => (
+  <svg {...base16(size)}>
+    <path d="M3 4.2h10M4.4 7h7.2M5.8 9.8h4.4M7 12.6h2" />
+  </svg>
+);
+
+export const Trend = ({ size = 12 }: Props) => (
+  <svg {...base16(size)}>
+    <path d="M2.2 11.8l3.2-3.1 2.3 1.7 4.1-5" />
+    <path d="M9.6 5.4h2.2v2.2" />
+  </svg>
+);
+
+export const Trash = ({ size = 12 }: Props) => (
+  <svg {...base16(size)}>
+    <path d="M3.2 4.3h9.6M6.1 2.4h3.8M4.5 4.3l.6 9.2h5.8l.6-9.2M6.8 6.7v4.4M9.2 6.7v4.4" />
+  </svg>
+);
+
+export const Paperclip = ({ size = 12 }: Props) => (
+  <svg {...base16(size)}><path d="M5.1 8.8l4.8-4.9a2 2 0 0 1 2.9 2.9l-6.2 6.1a3 3 0 0 1-4.2-4.2l5.8-5.8" /></svg>
+);
+
+export const Bolt = ({ size = 12 }: Props) => (
+  <svg {...base16(size)}><path d="M9.3 1.6L3.7 8.7h3.5l-.6 5.7 5.7-7.6H8.8z" /></svg>
 );
 
 export const Gear = ({ size = 12 }: Props) => (

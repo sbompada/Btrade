@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import * as Icon from '../components/Icons';
 import { useAuth } from '../auth/AuthContext';
 import {
   ApiError,
   adminApi,
+  canAccess,
   type Channel,
   type DriverSpec,
   type Provider,
 } from '../lib/api';
+import { istDateTime } from '../lib/format';
 
 const TABS: { tab: string; channel: Channel; label: string; senderHint: string }[] = [
   { tab: 'Email providers', channel: 'email', label: 'Email', senderHint: 'no-reply@yourdomain.com' },
@@ -36,7 +39,7 @@ const blankForm = (driver: string): FormState => ({
 });
 
 export default function AdminProviders() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [tab, setTab] = useState(TABS[0].tab);
   const active = TABS.find((t) => t.tab === tab)!;
   const channel = active.channel;
@@ -159,6 +162,7 @@ export default function AdminProviders() {
           <span className="panel-title">{active.label} providers</span>
           <span className="panel-count num">({rows.length})</span>
           <div className="panel-actions">
+            {canAccess(user, 'admin.payment_integrations') && <Link className="chip" to="/admin/payment-integrations">Payment integrations</Link>}
             <button className="chip" onClick={startCreate} disabled={!specs.length}>
               + Add provider
             </button>
@@ -194,7 +198,7 @@ export default function AdminProviders() {
                       className="num"
                       style={{ fontSize: 9, color: p.lastTestOk ? 'var(--up)' : 'var(--down)' }}
                     >
-                      {p.lastTestOk ? 'checked' : 'failed'} {p.lastTestedAt}
+                      {p.lastTestOk ? 'checked' : 'failed'} {istDateTime(p.lastTestedAt)}
                     </span>
                   )}
                 </div>
@@ -411,7 +415,7 @@ function AuditList({ token }: { token: string | null }) {
       {entries.slice(0, 8).map((e) => (
         <div className="trow sm" key={e.id} style={{ height: 32 }}>
           <span className="num" style={{ width: 150, fontSize: 10, color: 'var(--text-3)' }}>
-            {e.at}
+            {istDateTime(e.at)}
           </span>
           <span className="num" style={{ width: 80, fontSize: 10, color: 'var(--amber)' }}>
             {e.actor}

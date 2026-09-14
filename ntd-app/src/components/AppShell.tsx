@@ -1,7 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { currentSession } from '../data/market';
+import { useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { useMarketTimings } from '../market/useMarketTimings';
 import TopBar from './TopBar';
 import Watchlist from './Watchlist';
+import InstrumentChart from './InstrumentChart';
 
 type Props = {
   tabs: string[];
@@ -20,12 +22,8 @@ export default function AppShell({
   children,
 }: Props) {
   const active = activeTab ?? tabs[0];
-  const [session, setSession] = useState(currentSession());
-
-  useEffect(() => {
-    const id = setInterval(() => setSession(currentSession()), 1000);
-    return () => clearInterval(id);
-  }, []);
+  const timings = useMarketTimings();
+  const [chartInstrument, setChartInstrument] = useState<{ symbol: string; exchange: string } | null>(null);
 
   return (
     <div className="app">
@@ -41,18 +39,18 @@ export default function AppShell({
             {t}
           </button>
         ))}
-        <div className="status">
-          <div className="status-dot" style={{ background: session.marketOpen ? "var(--up)" : "var(--faint)" }} />
+        <Link className="status" to="/market-timings" aria-label="View market timings">
+          <div className="status-dot" style={{ background: timings?.equityOpen ? "var(--up)" : "var(--faint)" }} />
           <span className="status-label">
-            {session.marketOpen ? 'NSE & BSE open' : 'Markets closed'}
+            {timings ? timings.equityOpen ? 'NSE & BSE open' : 'Markets closed' : 'Market status'}
           </span>
-          <span className="status-clock num">{session.clock}</span>
-        </div>
+          <span className="status-clock num">{timings?.clock ?? 'IST'}</span>
+        </Link>
       </div>
 
       <div className="shell-body">
-        {withWatchlist && <Watchlist />}
-        <main className="main">{children}</main>
+        {withWatchlist && <Watchlist onOpenChart={setChartInstrument} />}
+        <main className="main">{chartInstrument ? <InstrumentChart instrument={chartInstrument} onClose={() => setChartInstrument(null)} /> : children}</main>
       </div>
     </div>
   );

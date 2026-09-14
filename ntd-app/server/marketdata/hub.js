@@ -11,6 +11,7 @@ class MarketDataHub {
     this.provider = null;
     this.latest = new Map();
     this.clients = new Set();
+    this.tickListeners = new Set();
   }
 
   /**
@@ -36,6 +37,13 @@ class MarketDataHub {
     this.provider.onTick((tick) => {
       this.latest.set(tick.symbol, tick);
       recordTick(tick);
+      for (const listener of this.tickListeners) {
+        try {
+          listener(tick);
+        } catch (error) {
+          console.error('[marketdata] tick listener failed:', error.message);
+        }
+      }
       this.broadcast(tick);
     });
 
@@ -62,6 +70,11 @@ class MarketDataHub {
   addClient(res) {
     this.clients.add(res);
     return () => this.clients.delete(res);
+  }
+
+  onTick(listener) {
+    this.tickListeners.add(listener);
+    return () => this.tickListeners.delete(listener);
   }
 
   broadcast(tick) {

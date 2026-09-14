@@ -6,10 +6,11 @@ import * as Icon from '../components/Icons';
 import { useAuth } from '../auth/AuthContext';
 import { useFunds } from '../market/useFunds';
 import { fundsApi, type FundStatement, type FundsSegment } from '../lib/api';
-import { num } from '../lib/format';
+import { istDateKey, istDateTime, num } from '../lib/format';
 
 type SegmentFilter = 'all' | FundsSegment['segment'];
 type KindFilter = 'all' | FundStatement['kind'];
+type StatusFilter = 'all' | FundStatement['status'];
 
 const escapeCsv = (value: string | number) => {
   const text = String(value);
@@ -18,10 +19,10 @@ const escapeCsv = (value: string | number) => {
 
 async function saveStatements(rows: FundStatement[]) {
   const csv = [
-    ['Date', 'Segment', 'Type', 'Description', 'Reference', 'Debit', 'Credit'],
-    ...rows.map((row) => [row.date, row.segment, row.kind, row.description, row.reference, row.debit.toFixed(2), row.credit.toFixed(2)]),
+    ['Date', 'Segment', 'Type', 'Method', 'Status', 'Description', 'Reference', 'Fee', 'Expected', 'Debit', 'Credit'],
+    ...rows.map((row) => [istDateTime(row.date), row.segment, row.kind, row.method, row.status, row.description, row.reference, row.fee.toFixed(2), row.expectedAt ? istDateTime(row.expectedAt) : '', row.debit.toFixed(2), row.credit.toFixed(2)]),
   ].map((row) => row.map(escapeCsv).join(',')).join('\n');
-  const filename = `ntd-fund-statement-${new Date().toISOString().slice(0, 10)}.csv`;
+  const filename = `ntd-fund-statement-${istDateKey()}.csv`;
   const picker = (window as Window & { showSaveFilePicker?: (options: unknown) => Promise<{ createWritable: () => Promise<{ write: (content: string) => Promise<void>; close: () => Promise<void> }> }> }).showSaveFilePicker;
   if (picker) {
     try {
@@ -140,6 +141,7 @@ function Segment({
             <Row label="Opening balance" value={funds.openingBalance} />
             <Row label="Payin" value={funds.payin} />
             <Row label="Payout" value={funds.payout} />
+            <Row label="Withdrawable balance" value={funds.withdrawableBalance} strong />
             <Row label="SPAN" value={funds.span} />
             <Row label="Delivery margin" value={funds.deliveryMargin} />
             <Row label="Exposure" value={funds.exposure} />
@@ -167,6 +169,7 @@ export default function Funds() {
   const [statementError, setStatementError] = useState<string | null>(null);
   const [segment, setSegment] = useState<SegmentFilter>('all');
   const [kind, setKind] = useState<KindFilter>('all');
+  const [status, setStatus] = useState<StatusFilter>('all');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
@@ -189,12 +192,13 @@ export default function Funds() {
   }, [token]);
 
   const filteredStatements = useMemo(() => statements.filter((row) => {
-    const date = row.date.slice(0, 10);
+    const date = istDateKey(row.date);
     return (segment === 'all' || row.segment === segment)
       && (kind === 'all' || row.kind === kind)
+      && (status === 'all' || row.status === status)
       && (!from || date >= from)
       && (!to || date <= to);
-  }), [statements, segment, kind, from, to]);
+  }), [statements, segment, kind, status, from, to]);
 
   const showStatement = (nextSegment: SegmentFilter = 'all') => {
     setSegment(nextSegment);
@@ -203,12 +207,13 @@ export default function Funds() {
 
   const credit = filteredStatements.reduce((sum, row) => sum + row.credit, 0);
   const debit = filteredStatements.reduce((sum, row) => sum + row.debit, 0);
+  const pending = filteredStatements.filter((row) => row.status === 'PENDING').length;
 
   return (
     <AppShell tabs={['Funds', 'Statements']} activeTab={showingStatements ? 'Statements' : 'Funds'} onTabChange={(tab) => navigate(tab === 'Statements' ? '/funds/statements' : '/funds')}>
       {showingStatements ? <>
         <div className="grid-4">
-          <div className="tile"><span className="tile-label">ENTRIES</span><span className="tile-value num">{filteredStatements.length}</span><span>Current filters</span></div>
+          <div className="tile"><span className="tile-label">ENTRIES</span><span className="tile-value num">{filteredStatements.length}</span><span>{pending} pending</span></div>
           <div className="tile"><span className="tile-label">TOTAL CREDIT</span><span className="tile-value num up">₹{num(credit)}</span><span>Opening balance and pay-ins</span></div>
           <div className="tile"><span className="tile-label">TOTAL DEBIT</span><span className="tile-value num down">₹{num(debit)}</span><span>Withdrawals</span></div>
           <div className="tile"><span className="tile-label">NET MOVEMENT</span><span className="tile-value num">₹{num(credit - debit)}</span><span>For selected period</span></div>
@@ -218,25 +223,22 @@ export default function Funds() {
           <div className="panel-head tool-head"><div><span className="panel-title">Fund statement</span><span className="panel-count num"> ({filteredStatements.length})</span></div><div className="statement-filters">
             <select aria-label="Statement segment" value={segment} onChange={(event) => setSegment(event.target.value as SegmentFilter)}><option value="all">All segments</option><option value="equity">Equity</option><option value="commodity">Commodity</option></select>
             <select aria-label="Statement type" value={kind} onChange={(event) => setKind(event.target.value as KindFilter)}><option value="all">All entries</option><option value="OPENING">Opening balance</option><option value="PAYIN">Pay-ins</option><option value="PAYOUT">Payouts</option></select>
+            <select aria-label="Statement status" value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)}><option value="all">All statuses</option><option value="COMPLETED">Completed</option><option value="PENDING">Pending</option><option value="FAILED">Failed</option></select>
             <label><span>From</span><input aria-label="Statement from date" type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
             <label><span>To</span><input aria-label="Statement to date" type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
             <button className="chip" onClick={async () => setDownloadStatus(await saveStatements(filteredStatements))} disabled={!filteredStatements.length}><Icon.Download /> Download CSV</button>
           </div></div>
           {downloadStatus && <div className="download-status" role="status">{downloadStatus}<button onClick={() => setDownloadStatus(null)} aria-label="Dismiss download status">×</button></div>}
-          <div className="statement-head"><span>DATE</span><span>SEGMENT</span><span>DESCRIPTION</span><span>REFERENCE</span><span>DEBIT</span><span>CREDIT</span></div>
-          {statementsLoading ? <div className="stub"><span>Loading fund statement…</span></div> : filteredStatements.length ? filteredStatements.map((row) => <div className="statement-row" key={row.id}><span className="num">{new Date(`${row.date.replace(' ', 'T')}Z`).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span><span className="tag">{row.segment.toUpperCase()}</span><div><strong>{row.description}</strong><span>{row.kind}</span></div><span className="num statement-reference">{row.reference}</span><span className="num down">{row.debit ? `₹${num(row.debit)}` : '—'}</span><span className="num up">{row.credit ? `₹${num(row.credit)}` : '—'}</span></div>) : <div className="stub"><strong>No statement entries</strong><span>Adjust the filters or add funds to create an entry.</span></div>}
+          <div className="statement-head"><span>DATE</span><span>SEGMENT</span><span>DESCRIPTION</span><span>REFERENCE</span><span>STATUS</span><span>DEBIT</span><span>CREDIT</span></div>
+          {statementsLoading ? <div className="stub"><span>Loading fund statement…</span></div> : filteredStatements.length ? filteredStatements.map((row) => <div className="statement-row" key={row.id}><span className="num">{istDateTime(row.date)}</span><span className="tag">{row.segment.toUpperCase()}</span><div><strong>{row.description}</strong><span>{row.kind} · {row.method}{row.fee ? ` · ₹${num(row.fee)} fee` : ''}</span></div><span className="num statement-reference">{row.reference}</span><div><span className={`tag fund-status ${row.status.toLowerCase()}`}>{row.status}</span>{row.status === 'PENDING' && row.expectedAt && <span>Expected {istDateTime(row.expectedAt)}</span>}</div><span className="num down">{row.debit ? `₹${num(row.debit)}` : '—'}</span><span className="num up">{row.credit ? `₹${num(row.credit)}` : '—'}</span></div>) : <div className="stub"><strong>No statement entries</strong><span>Adjust the filters or add funds to create an entry.</span></div>}
         </section>
       </> : <>
-      <div
-        className="panel"
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '0 14px', height: 48 }}
-      >
+      <div className="panel funds-transfer-banner">
         <Icon.Shield />
         <span style={{ fontSize: 12, color: 'var(--text-2)' }}>
-          Instant, zero-cost transfers via UPI. Payments before 3:30 PM reflect in your margin the same
-          day.
+          UPI is instant and free. Net banking is instant with a ₹10.62 fee; bank transfers are credited after confirmation.
         </span>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="funds-transfer-actions">
           <button className="btn ghost" onClick={() => setTransfer('withdraw')}>Withdraw</button>
           <button className="btn primary" onClick={() => setTransfer('add')}>Add funds</button>
         </div>

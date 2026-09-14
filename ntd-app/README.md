@@ -12,6 +12,18 @@ npm run dev:web
 
 The Vite application runs on port `5173` and proxies `/api` to port `5181`.
 
+## GitHub minute-data imports
+
+Administrators with the **Market data** permission can open `/admin/market-data`, paste a public GitHub folder URL, inspect its minute CSV files, and import selected symbols. The importer:
+
+- recognizes filenames such as `RELIANCE__EQ__NSE__NSE__MINUTE.csv`;
+- requires `timestamp`, `open`, `high`, `low`, and `close` columns;
+- converts offset timestamps to UTC minute buckets and derives the symbol from the filename;
+- stores `1m` candles, creates daily aggregates, and skips existing candles;
+- streams files up to 100 MB instead of buffering them in application memory.
+
+Unauthenticated GitHub API access is rate limited. Set `GITHUB_TOKEN` on the API server when a higher API allowance is required; the token is read server-side and is never exposed in the browser.
+
 ## Cloud Run demo
 
 The container serves both the built frontend and API on Cloud Run's `PORT`. Set `NTD_MASTER_KEY` to a 64-character hexadecimal secret and use `/tmp/ntd.db` for the demo database.

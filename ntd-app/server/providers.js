@@ -143,7 +143,11 @@ export function partitionFields(spec, values) {
       continue;
     }
     settings[field.key] =
-      field.type === 'number' ? Number(raw) : field.type === 'boolean' ? Boolean(raw) : String(raw).trim();
+      field.type === 'number'
+        ? Number(raw)
+        : field.type === 'boolean'
+          ? raw === true || raw === 'true'
+          : String(raw).trim();
   }
 
   return { settings, secrets, missing };

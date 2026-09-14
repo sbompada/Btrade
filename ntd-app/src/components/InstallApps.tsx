@@ -8,14 +8,14 @@ const IOS_STEPS = [
   'Open this page in Safari (Chrome on iPhone cannot install web apps).',
   'Tap the Share button in the toolbar.',
   'Choose "Add to Home Screen".',
-  'Tap Add — NTD appears alongside your other apps.',
+  'Tap Add — uni-share appears alongside your other apps.',
 ];
 
 const ANDROID_STEPS = [
   'Open this page in Chrome on your Android phone.',
   'Tap the ⋮ menu in the top-right.',
   'Choose "Add to Home screen" or "Install app".',
-  'Confirm — NTD installs like any other app.',
+  'Confirm — uni-share installs like any other app.',
 ];
 
 export default function InstallApps() {
@@ -81,7 +81,7 @@ export default function InstallApps() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 500, flex: 1 }}>
-              {sheet === 'ios' ? 'Add NTD to your iPhone' : 'Install NTD on Android'}
+              {sheet === 'ios' ? 'Add uni-share to your iPhone' : 'Install uni-share on Android'}
             </span>
             <button style={{ fontSize: 11, color: 'var(--text-3)' }} onClick={() => setSheet(null)}>
               Close

@@ -7,6 +7,7 @@ import { useMarket } from './MarketDataContext';
 export type LivePosition = PositionRecord & {
   ltp: number;
   pnl: number;
+  pnlPct: number;
   dayChangePct: number;
   isLive: boolean;
 };
@@ -52,6 +53,7 @@ export function usePortfolio() {
         ltp,
         // Works for shorts too: a negative qty profits as the price falls.
         pnl: (ltp - p.avg) * p.qty,
+        pnlPct: p.avg === 0 ? 0 : ((ltp - p.avg) / p.avg) * 100 * Math.sign(p.qty),
         dayChangePct: quote?.changePct ?? 0,
         isLive: !!quote,
       };

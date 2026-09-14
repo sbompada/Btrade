@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import AppShell from '../components/AppShell';
 import * as Icon from '../components/Icons';
 import { useAuth } from '../auth/AuthContext';
-import { ordersApi, type OrderRecord } from '../lib/api';
+import { ApiError, ordersApi, positionsApi, type OrderRecord } from '../lib/api';
 import { usePortfolio } from '../market/usePortfolio';
-import { num, signed, signedPct, signedRupees, toneOf } from '../lib/format';
+import { istDateKey, num, signed, signedPct, signedRupees, toneOf } from '../lib/format';
 
 const COLS = {
   check: 28,
@@ -14,12 +14,14 @@ const COLS = {
   ltp: 90,
   pnl: 120,
   chg: 90,
+  actions: 88,
 };
 
 type View = 'positions' | 'history';
 type PositionSettings = { showDayChange: boolean; lossesFirst: boolean };
 
 const defaultSettings: PositionSettings = { showDayChange: true, lossesFirst: false };
+const positionKey = (instrument: string, product: string) => `${instrument}\u0000${product}`;
 
 function escapeCsv(value: string | number) {
   const text = String(value);
@@ -72,6 +74,10 @@ export default function Positions() {
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [exiting, setExiting] = useState(false);
+  const [converting, setConverting] = useState<string | null>(null);
+  const [exitError, setExitError] = useState<string | null>(null);
   const [settings, setSettings] = useState<PositionSettings>(() => {
     try {
       return JSON.parse(localStorage.getItem(`ntd.position-settings.${user?.clientId}`) ?? '') as PositionSettings;
@@ -104,7 +110,7 @@ export default function Positions() {
 
   const dayOrders = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = istDateKey();
     return orders.filter((order) => {
       const isToday = !order.createdAt || order.createdAt.slice(0, 10) === today;
       return isToday && (!needle || `${order.instrument} ${order.exchange} ${order.product} ${order.side} ${order.status}`.toLowerCase().includes(needle));
@@ -115,9 +121,50 @@ export default function Positions() {
   const grossExposure = positions.reduce((sum, position) => sum + Math.abs(position.qty * position.ltp), 0);
   const longExposure = positions.filter((position) => position.qty > 0).reduce((sum, position) => sum + position.qty * position.ltp, 0);
   const shortExposure = positions.filter((position) => position.qty < 0).reduce((sum, position) => sum + Math.abs(position.qty * position.ltp), 0);
+  const selectedPositions = positions.filter((position) => selected.has(positionKey(position.instrument, position.product)));
+
+  const togglePosition = (key: string) => setSelected((current) => {
+    const next = new Set(current);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    return next;
+  });
+
+  const exitSelected = async () => {
+    if (!token || !selectedPositions.length || !window.confirm(`Exit ${selectedPositions.length} selected position${selectedPositions.length === 1 ? '' : 's'} at current replay prices?`)) return;
+    setExiting(true);
+    setExitError(null);
+    try {
+      await positionsApi.exit(token, selectedPositions.map(({ instrument, product }) => ({ instrument, product })));
+      setSelected(new Set());
+      window.dispatchEvent(new Event('ntd:portfolio-change'));
+    } catch (cause) {
+      setExitError(cause instanceof ApiError ? cause.message : 'Could not exit the selected positions.');
+    } finally {
+      setExiting(false);
+    }
+  };
+
+  const convert = async (instrument: string, exchange: string, product: string) => {
+    if (!token) return;
+    const target = product === 'MIS' ? (exchange === 'NSE' || exchange === 'BSE' ? 'CNC' : 'NRML') : 'MIS';
+    if (!window.confirm(`Convert ${instrument} from ${product} to ${target}?`)) return;
+    const key = positionKey(instrument, product);
+    setConverting(key);
+    setExitError(null);
+    try {
+      await positionsApi.convert(token, { instrument, product }, target);
+      setSelected(new Set());
+      window.dispatchEvent(new Event('ntd:portfolio-change'));
+    } catch (cause) {
+      setExitError(cause instanceof ApiError ? cause.message : 'Could not convert this position.');
+    } finally {
+      setConverting(null);
+    }
+  };
 
   const download = async () => {
-    const date = new Date().toISOString().slice(0, 10);
+    const date = istDateKey();
     if (view === 'history') {
       const result = await downloadCsv([
         ['Time', 'Side', 'Instrument', 'Exchange', 'Product', 'Quantity', 'Average price', 'Status'],
@@ -154,6 +201,9 @@ export default function Positions() {
             <button className={settingsOpen ? 'chip range active' : 'chip'} onClick={() => setSettingsOpen((open) => !open)} aria-expanded={settingsOpen}>
               <Icon.Gear /> Settings
             </button>
+            {view === 'positions' && <button className="chip danger" onClick={exitSelected} disabled={!selectedPositions.length || exiting}>
+              {exiting ? 'Exiting…' : `Exit selected (${selectedPositions.length})`}
+            </button>}
             <button className="chip" onClick={download} disabled={view === 'positions' ? !filteredPositions.length : !dayOrders.length}>
               <Icon.Download /> Download
             </button>
@@ -169,6 +219,7 @@ export default function Positions() {
         )}
 
         {downloadStatus && <div className="download-status" role="status">{downloadStatus}<button onClick={() => setDownloadStatus(null)} aria-label="Dismiss download status">×</button></div>}
+        {exitError && <div className="notice error" role="alert">{exitError}</div>}
 
         {analyticsOpen && (
           <div className="position-analytics">
@@ -180,7 +231,7 @@ export default function Positions() {
         )}
 
         {view === 'positions' ? <><div className="thead">
-          <span style={{ width: COLS.check }} />
+          <span style={{ width: COLS.check }}><input type="checkbox" aria-label="Select all visible positions" checked={filteredPositions.length > 0 && filteredPositions.every((position) => selected.has(positionKey(position.instrument, position.product)))} onChange={(event) => setSelected((current) => { const next = new Set(current); for (const position of filteredPositions) { const key = positionKey(position.instrument, position.product); if (event.target.checked) next.add(key); else next.delete(key); } return next; })} /></span>
           <span style={{ width: COLS.product }}>PRODUCT</span>
           <span style={{ flex: 1, minWidth: 0 }}>INSTRUMENT</span>
           <span style={{ width: COLS.qty, textAlign: 'right' }}>QTY</span>
@@ -188,15 +239,17 @@ export default function Positions() {
           <span style={{ width: COLS.ltp, textAlign: 'right' }}>LTP</span>
           <span style={{ width: COLS.pnl, textAlign: 'right' }}>P&amp;L</span>
           {settings.showDayChange && <span style={{ width: COLS.chg, textAlign: 'right' }}>CHG.</span>}
+          <span style={{ width: COLS.actions, textAlign: 'right' }}>ACTION</span>
         </div>
 
         <div>
           {filteredPositions.map((p) => {
             const pnl = p.pnl;
+            const key = positionKey(p.instrument, p.product);
             return (
-              <div className="trow" key={p.instrument}>
+              <div className="trow" key={key}>
                 <div style={{ width: COLS.check }}>
-                  <div className="checkbox" />
+                  <input type="checkbox" aria-label={`Select ${p.instrument} ${p.product}`} checked={selected.has(key)} onChange={() => togglePosition(key)} />
                 </div>
                 <div style={{ width: COLS.product }}>
                   <span className="badge product">{p.product}</span>
@@ -225,9 +278,10 @@ export default function Positions() {
                 </span>
                 <span
                   className={`num ${toneOf(pnl)}`}
-                  style={{ width: COLS.pnl, textAlign: 'right', fontSize: 11 }}
+                  style={{ width: COLS.pnl, textAlign: 'right', fontSize: 11, display: 'flex', flexDirection: 'column' }}
                 >
                   {signed(pnl)}
+                  <small>{signedPct(p.pnlPct)}</small>
                 </span>
                 {settings.showDayChange && <span
                   className={`num ${toneOf(p.dayChangePct)}`}
@@ -235,6 +289,11 @@ export default function Positions() {
                 >
                   {signedPct(p.dayChangePct)}
                 </span>}
+                <span style={{ width: COLS.actions, textAlign: 'right' }}>
+                  <button className="chip range" disabled={p.conversionBlocked || converting === key} title={p.conversionBlocked ? 'Cover order positions cannot be converted' : `Convert ${p.product} product`} onClick={() => convert(p.instrument, p.exchange, p.product)}>
+                    {converting === key ? 'Converting…' : 'Convert'}
+                  </button>
+                </span>
               </div>
             );
           })}
